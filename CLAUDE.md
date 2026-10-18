@@ -27,7 +27,34 @@ pilatesegitmeni.com is an independent Pilates information and editorial brand. I
 - Instagram: the handle stays an explicit TODO until the real account is provided. Don't guess one. Use plain links, not embedded feeds.
 - Final domain: pilatesegitmeni.com, set once as Astro's `site`. Canonical URLs always use it.
 - Portability: the build must be plain static files that work on any static host. Assume the site is served from the domain root: don't set Astro's `base` or hard-code a GitHub Pages subpath (`/pilatesegitmeni.github.io/`).
-- Hosting: GitHub Pages via GitHub Actions is the first candidate, but nothing is deployed yet. Don't assume DNS is configured. Development uses local preview only (`astro dev` / `astro preview`).
+- Hosting: GitHub Pages via GitHub Actions (`.github/workflows/deploy.yml`), but nothing is deployed yet; see "Deployment status" below. Don't assume DNS is configured. Development uses local preview only (`astro dev` / `astro preview`).
+
+## Deployment status (as of 2026-10-19)
+
+- Commit `ea9ab2d85746d42312568aef64bee04488e08fbb` ("Add manual GitHub Pages deployment workflow") is pushed to `origin/main`.
+- `.github/workflows/deploy.yml` triggers only on `workflow_dispatch` (no push trigger). It runs `npm ci` and `npm run build` (so `check-dist` gates the deploy), uploads `dist/` and deploys with `actions/deploy-pages`. It has never run. **The site has NOT been deployed.**
+- No GitHub settings or DNS records have been changed. DNS is at GoDaddy (`ns49`/`ns50.domaincontrol.com`); `@` and `www` still point to `92.205.6.33`.
+- Until this repo has its own custom domain, Pages would serve it under the user site's domain (`arifdurgec.com/pilatesegitmeni.github.io/`), where the root-relative asset paths break. Don't deploy before step 2.
+- No `CNAME` file: GitHub ignores it for Actions deployments; the custom domain lives in the repository's Pages settings.
+
+Next steps, in order (each GitHub/DNS change is done by the owner, not Claude):
+
+1. Verify `pilatesegitmeni.com` in GitHub profile Settings → Pages, using the unique TXT record GitHub provides. Add it in GoDaddy as `_github-pages-challenge-arfdrgc`.
+2. In repository Settings → Pages, select `GitHub Actions` as the source and set the custom domain to `pilatesegitmeni.com`.
+3. Update GoDaddy DNS:
+   - A `@` → `185.199.108.153`
+   - A `@` → `185.199.109.153`
+   - A `@` → `185.199.110.153`
+   - A `@` → `185.199.111.153`
+   - AAAA `@` → `2606:50c0:8000::153`
+   - AAAA `@` → `2606:50c0:8001::153`
+   - AAAA `@` → `2606:50c0:8002::153`
+   - AAAA `@` → `2606:50c0:8003::153`
+   - Change CNAME `www` to `arfdrgc.github.io`.
+   - Delete the old A `@` record pointing to `92.205.6.33`.
+4. Preserve all email records, including MX `@` → `mail.pilatesegitmeni.com`, A `mail` → `92.205.6.33`, SPF TXT `@` → `v=spf1 a mx ptr include:secureserver.net ~all`, and every other email-related record.
+5. Wait for GitHub's DNS check and HTTPS certificate, then enable Enforce HTTPS.
+6. Run the manual deployment workflow ONLY after the owner explicitly confirms the site is ready to publish.
 
 ## Commands
 
