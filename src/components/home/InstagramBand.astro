@@ -1,0 +1,123 @@
+---
+import brand from '../../config/brand.json';
+import type { Lang } from '../../i18n/ui';
+import { t } from '../../i18n/utils';
+import DevPlaceholder from '../DevPlaceholder.astro';
+import InstagramLink from '../InstagramLink.astro';
+
+interface Props {
+  lang: Lang;
+  communityText: string | null;
+}
+
+const { lang, communityText } = Astro.props;
+const handle: string | null = brand.instagramHandle;
+const headingId = `community-${lang}`;
+// Without an approved handle the band exists only in local development, as a
+// whole marked data-dev-only so check-dist can prove it never ships.
+const render = Boolean(handle || import.meta.env.DEV);
+---
+
+{
+  render && (
+    <section class="band" aria-labelledby={headingId} {...(handle ? {} : { 'data-dev-only': '' })}>
+      <div class="container band__inner">
+        <h2 id={headingId} class="band__label label">
+          {t(lang).instagramLabel}
+        </h2>
+        {communityText ? (
+          <p class="band__sentence">{communityText}</p>
+        ) : (
+          <DevPlaceholder as="p" class="band__sentence" label="topluluk cümlesi / community sentence (src/config/home.json)" />
+        )}
+        <div class="band__action">
+          {handle ? <p class="band__handle">@{handle}</p> : <DevPlaceholder as="p" class="band__handle" label="Instagram handle" />}
+          <InstagramLink class="band__follow ui" label={t(lang).followOnInstagram} />
+        </div>
+      </div>
+    </section>
+  )
+}
+
+<style>
+  .band {
+    background: var(--color-band);
+    color: var(--color-band-text);
+  }
+
+  /* The accent focus ring is too dark on sage; use the band's text colour. */
+  .band :global(:focus-visible) {
+    outline-color: var(--color-band-text);
+  }
+
+  /* Narrower than the page, so the band reads as its own moment. */
+  .band__inner {
+    display: grid;
+    gap: var(--space-4);
+    max-width: calc(var(--band-max) + 2 * var(--gutter));
+    padding-block: var(--section-pad);
+  }
+
+  .band__label {
+    padding-bottom: var(--space-4);
+    border-bottom: 1px solid var(--color-band-muted);
+    color: var(--color-band-muted);
+  }
+
+  .band :global(.band__sentence) {
+    max-width: 18em;
+    font-size: var(--text-band);
+    font-style: italic;
+    font-weight: 300;
+    line-height: 1.12;
+    letter-spacing: -0.015em;
+  }
+
+  .band__action {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .band :global(.band__handle) {
+    color: var(--color-band-muted);
+    font-size: 1.375rem;
+  }
+
+  .band :global(a.band__follow) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 3rem;
+    padding-inline: var(--space-4);
+    border: 1px solid var(--color-band-text);
+    color: var(--color-band-text);
+    text-decoration: none;
+  }
+
+  .band :global(a.band__follow:hover) {
+    box-shadow: inset 0 0 0 1px var(--color-band-text);
+  }
+
+  /* Desktop: sentence left, handle and button right, under the label rule. */
+  @media (min-width: 48rem) {
+    .band__inner {
+      grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+      align-items: end;
+      column-gap: var(--space-6);
+      row-gap: var(--space-5);
+    }
+
+    .band__label {
+      grid-column: 1 / -1;
+    }
+
+    .band__action {
+      align-items: flex-start;
+    }
+
+    .band :global(a.band__follow) {
+      display: inline-flex;
+    }
+  }
+</style>

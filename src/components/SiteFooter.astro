@@ -1,0 +1,115 @@
+---
+import brand from '../config/brand.json';
+import { footerNav } from '../config/navigation';
+import type { Lang } from '../i18n/ui';
+import type { Translations } from '../i18n/utils';
+import InstagramLink from './InstagramLink.astro';
+import LanguageLink from './LanguageLink.astro';
+
+interface Props {
+  lang: Lang;
+  translations: Translations;
+}
+
+const { lang, translations } = Astro.props;
+---
+
+<footer class="site-footer">
+  <div class="container site-footer__inner ui">
+    <p class="site-footer__brand">{brand.name}</p>
+    {
+      footerNav.length > 0 && (
+        <ul class="site-footer__links site-footer__pages" role="list">
+          {footerNav.map((item) => (
+            <li>
+              <a
+                class="site-footer__link"
+                href={item.path[lang]}
+                aria-current={Astro.url.pathname === item.path[lang] ? 'page' : undefined}
+              >
+                {item.label[lang]}
+              </a>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+    <div class="site-footer__links">
+      <LanguageLink class="site-footer__link" lang={lang} translations={translations} />
+      <InstagramLink class="site-footer__link" />
+    </div>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    background: var(--color-surface);
+    border-top: 1px solid var(--color-rule);
+  }
+
+  .site-footer__inner {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    padding-block: var(--section-pad) var(--space-5);
+    color: var(--color-muted);
+  }
+
+  /* The closing hairline under the footer content. */
+  .site-footer__inner::after {
+    content: '';
+    margin-top: var(--space-4);
+    border-top: 1px solid var(--color-rule);
+  }
+
+  .site-footer__brand {
+    color: var(--color-text);
+    font-family: var(--font-serif);
+    font-size: var(--text-footer-mark);
+    font-weight: 300;
+    line-height: 0.95;
+    letter-spacing: -0.025em;
+  }
+
+  .site-footer__links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-4);
+    font-size: 0.9375rem;
+  }
+
+  .site-footer__pages {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .site-footer__links :global(.site-footer__link) {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap-min);
+    color: var(--color-text);
+    text-decoration: none;
+  }
+
+  .site-footer__links :global(a.site-footer__link:hover),
+  .site-footer__links :global(a.site-footer__link[aria-current='page']) {
+    text-decoration-line: underline;
+    text-underline-offset: 0.3em;
+  }
+
+  /* Desktop: wordmark left, links aligned to its baseline on the right. */
+  @media (min-width: 48rem) {
+    .site-footer__inner {
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: var(--space-4) var(--space-5);
+    }
+
+    .site-footer__inner::after {
+      flex-basis: 100%;
+    }
+  }
+</style>

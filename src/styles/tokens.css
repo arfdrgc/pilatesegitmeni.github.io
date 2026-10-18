@@ -1,0 +1,101 @@
+/*
+ * Design tokens. Colour tokens (--color-*) are defined ONLY in the two theme
+ * blocks below, as 6-digit hex values. scripts/check-contrast.mjs reads both
+ * blocks and fails on any missing, extra, untested or changed colour.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  --color-bg: #f8f4ee; /* warm paper: page ground */
+  --color-surface: #f0e9df; /* linen: footer */
+  --color-panel: #e2e6da; /* sage tint: featured article panel, card tiles */
+  --color-tile: #f1e1d6; /* clay tint: card tiles */
+  --color-text: #26211d;
+  --color-muted: #62594f;
+  --color-accent: #9f4a2b; /* terracotta: links, labels */
+  --color-sage: #4d5b4a; /* tile numerals */
+  --color-focus: #9f4a2b;
+  --color-rule: #ddd3c5;
+  --color-band: #4d5b4a; /* Instagram band */
+  --color-band-text: #f6f1e8;
+  --color-band-muted: #d3d9cc;
+
+  --font-serif: 'Newsreader', Georgia, 'Times New Roman', serif;
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  /* Fluid sizes between 360px and 1440px viewports. */
+  --text-display: clamp(2.875rem, 1.792rem + 4.815vw, 6.125rem);
+  --text-cover: clamp(2.125rem, 1.5rem + 2.778vw, 4rem);
+  --text-h2: clamp(2.125rem, 1.833rem + 1.296vw, 3rem);
+  --text-band: clamp(2rem, 1.625rem + 1.667vw, 3.125rem);
+  --text-card: clamp(1.3125rem, 1.208rem + 0.463vw, 1.625rem);
+  --text-lead: clamp(1.125rem, 1.063rem + 0.278vw, 1.3125rem);
+  --text-body: clamp(1.125rem, 1.104rem + 0.093vw, 1.1875rem);
+  --text-wordmark: clamp(1.875rem, 1.167rem + 3.148vw, 4rem);
+  --text-footer-mark: clamp(2.75rem, 1.833rem + 4.074vw, 5.5rem);
+  --text-ui: 0.875rem;
+  --text-label: 0.75rem;
+  --text-small: 0.8125rem;
+
+  --leading-display: 1.02;
+  --leading-heading: 1.15;
+  --leading-body: 1.6;
+
+  --tracking-display: -0.028em;
+  --tracking-heading: -0.018em;
+  --tracking-label: 0.12em;
+
+  --measure: 40rem;
+  --page-max: 80rem;
+  --band-max: 70rem;
+  --gutter: 1rem;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 1rem;
+  --space-4: 1.5rem;
+  --space-5: 2.5rem;
+  --space-6: 4rem;
+  --space-7: 6.5rem;
+  /* Vertical padding of homepage sections: 56px on phones up to 104px. */
+  --section-pad: clamp(3.5rem, 2.5rem + 4.444vw, 6.5rem);
+  --focus-ring: 2px solid var(--color-focus);
+  --tap-min: 2.75rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #1f1c19;
+    --color-surface: #282420;
+    --color-panel: #252b24;
+    --color-tile: #2e2521;
+    --color-text: #f0eae1;
+    --color-muted: #bdb2a4;
+    --color-accent: #e3a283;
+    --color-sage: #aebda5;
+    --color-focus: #e3a283;
+    --color-rule: #3d3731;
+    --color-band: #2f3a2d;
+    --color-band-text: #eef0e8;
+    --color-band-muted: #c3ccbb;
+  }
+}
+
+@media (min-width: 48rem) {
+  :root {
+    --gutter: 2rem;
+  }
+}
+
+@media (min-width: 64rem) {
+  :root {
+    --gutter: 3rem;
+  }
+}
+
+@media (min-width: 90rem) {
+  :root {
+    --gutter: 5rem;
+  }
+}

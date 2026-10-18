@@ -1,0 +1,70 @@
+---
+// Shared by the Turkish and English homepages, so both always have the same
+// sections in the same order. Each language shows only its own copy and articles.
+import brand from '../../config/brand.json';
+import home from '../../config/home.json';
+import { articlesIndexPath } from '../../config/navigation';
+import type { Lang } from '../../i18n/ui';
+import { getHomeArticles } from '../../lib/articles';
+import ArticleList from './ArticleList.astro';
+import FeaturedArticle from './FeaturedArticle.astro';
+import HomeIntro from './HomeIntro.astro';
+import InstagramBand from './InstagramBand.astro';
+
+interface Props {
+  lang: Lang;
+}
+
+interface HomeCopy {
+  statement: string | null;
+  supportingLine: string | null;
+  metaDescription: string | null;
+  communityText: string | null;
+}
+
+const { lang } = Astro.props;
+const copy: HomeCopy = (home as Record<Lang, HomeCopy>)[lang];
+const { featured, latest, hasMore, productionCount } = await getHomeArticles(lang);
+const allArticlesPath = hasMore && articlesIndexPath ? articlesIndexPath[lang] : undefined;
+const instagramHandle: string | null = brand.instagramHandle;
+
+// Production renders only sections with real content; nothing at all when there is none.
+const hasContent = Boolean(
+  import.meta.env.DEV || copy.statement || copy.supportingLine || featured || instagramHandle,
+);
+---
+
+<h1 class="visually-hidden">{brand.name}</h1>
+{
+  hasContent && (
+    <div class="home">
+      {import.meta.env.DEV && (
+        <p class="container ui dev-note" data-dev-only>
+          Development note: a production build shows {productionCount} published {lang.toUpperCase()} article(s)
+          here. Article sections are left out when there are none.
+        </p>
+      )}
+      <HomeIntro statement={copy.statement} supportingLine={copy.supportingLine} />
+      {featured && <FeaturedArticle article={featured} lang={lang} />}
+      {
+        latest.length > 0 && (
+          <ArticleList
+            articles={latest}
+            lang={lang}
+            allArticlesPath={allArticlesPath}
+            firstNumber={featured ? 2 : 1}
+          />
+        )
+      }
+      <InstagramBand lang={lang} communityText={copy.communityText} />
+    </div>
+  )
+}
+
+<style>
+  /* Each section pads itself, so a section left out leaves no gap behind. */
+  .dev-note {
+    padding-top: var(--space-4);
+    color: var(--color-muted);
+  }
+</style>

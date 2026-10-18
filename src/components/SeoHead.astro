@@ -1,0 +1,83 @@
+---
+import brand from '../config/brand.json';
+import { languages, ogLocales, type Lang } from '../i18n/ui';
+import type { Translations } from '../i18n/utils';
+
+interface Props {
+  title: string;
+  /** Omitted until real copy is provided; no meta description is emitted without it. */
+  description?: string;
+  lang: Lang;
+  /** Every built language version of this page, including the current one. */
+  translations: Translations;
+}
+
+const { title, description, lang, translations } = Astro.props;
+
+if (!Astro.site) {
+  throw new Error('`site` must be set in astro.config.mjs.');
+}
+
+const pathname = Astro.url.pathname;
+if (translations[lang] !== pathname) {
+  throw new Error(
+    `translations.${lang} must be the current page (${pathname}), got ${translations[lang] ?? 'nothing'}.`,
+  );
+}
+
+const absolute = (path: string) => new URL(path, Astro.site).href;
+const canonical = absolute(pathname);
+
+// hreflang only when at least one real translation exists.
+const versions = languages.flatMap((code) => {
+  const path = translations[code];
+  return path ? [{ code, href: absolute(path) }] : [];
+});
+const alternates = versions.length > 1 ? versions : [];
+const xDefault = alternates.find((version) => version.code === 'tr');
+
+const instagramHandle: string | null = brand.instagramHandle;
+const organization = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: brand.name,
+  url: absolute('/'),
+  ...(instagramHandle ? { sameAs: [`https://www.instagram.com/${instagramHandle}/`] } : {}),
+};
+
+// The theme-color values below must match --color-bg in src/styles/tokens.css
+// (verified by scripts/check-contrast.mjs).
+---
+
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>{title}</title>
+{description && <meta name="description" content={description} />}
+<link rel="canonical" href={canonical} />
+{alternates.map((version) => <link rel="alternate" hreflang={version.code} href={version.href} />)}
+{xDefault && <link rel="alternate" hreflang="x-default" href={xDefault.href} />}
+
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content={brand.name} />
+<meta property="og:title" content={title} />
+{description && <meta property="og:description" content={description} />}
+<meta property="og:url" content={canonical} />
+<meta property="og:locale" content={ogLocales[lang]} />
+{
+  alternates
+    .filter((version) => version.code !== lang)
+    .map((version) => <meta property="og:locale:alternate" content={ogLocales[version.code]} />)
+}
+<meta name="twitter:card" content="summary" />
+<meta name="theme-color" content="#f8f4ee" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#1f1c19" media="(prefers-color-scheme: dark)" />
+
+<link
+  rel="preload"
+  href="/fonts/newsreader/newsreader-latin-standard-normal.woff2"
+  as="font"
+  type="font/woff2"
+  crossorigin
+/>
+<link rel="sitemap" href="/sitemap-index.xml" />
+<script type="application/ld+json" set:html={JSON.stringify(organization)} />

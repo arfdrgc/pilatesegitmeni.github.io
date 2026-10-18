@@ -1,0 +1,60 @@
+---
+import type { Lang } from '../i18n/ui';
+import { categoryLabel } from '../lib/categories';
+import { formatDate, isoDate } from '../lib/format';
+import type { Article } from '../lib/articles';
+import DevPlaceholder from './DevPlaceholder.astro';
+
+interface Props {
+  article: Article;
+  lang: Lang;
+  /** "category" also carries the development-only draft/sample badges. */
+  part: 'category' | 'date';
+  class?: string;
+}
+
+const { article, lang, part, class: className } = Astro.props;
+const { category, draft, sample, publishDate } = article.data;
+const label = part === 'category' ? categoryLabel(category, lang) : null;
+---
+
+{
+  part === 'category' ? (
+    <p class:list={['meta label', className]}>
+      {label ?? <DevPlaceholder label={`category "${category}"`} />}
+      {import.meta.env.DEV && draft && (
+        <span class="meta__badge" data-dev-only>
+          Taslak · Draft
+        </span>
+      )}
+      {sample && (
+        <span class="meta__badge" data-sample>
+          {/* Each half is uppercased with its own language's rules (İ, not I). */}
+          <span lang="tr">Örnek içerik</span> · <span lang="en">Sample content</span>
+        </span>
+      )}
+    </p>
+  ) : (
+    <p class:list={['meta ui', className]}>
+      <time datetime={isoDate(publishDate)}>{formatDate(publishDate, lang)}</time>
+    </p>
+  )
+}
+
+<style>
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-1) var(--space-2);
+    margin: 0;
+    color: var(--color-muted);
+  }
+
+  .meta__badge {
+    padding: 0.1em 0.5em;
+    border: 1px solid currentColor;
+    color: var(--color-accent);
+    font-size: 0.6875rem;
+  }
+</style>

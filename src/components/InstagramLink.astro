@@ -1,0 +1,27 @@
+---
+import brand from '../config/brand.json';
+import DevPlaceholder from './DevPlaceholder.astro';
+
+interface Props {
+  class?: string;
+  /** Visible link text; defaults to "Instagram". */
+  label?: string;
+}
+
+const { class: className, label = 'Instagram' } = Astro.props;
+
+const handle: string | null = brand.instagramHandle;
+if (handle !== null && !/^[A-Za-z0-9._]{1,30}$/.test(handle)) {
+  throw new Error(`Invalid Instagram handle in src/config/brand.json: "${handle}".`);
+}
+---
+
+{
+  handle ? (
+    <a class={className} href={`https://www.instagram.com/${handle}/`}>
+      {label}
+    </a>
+  ) : (
+    <DevPlaceholder class={className} label={`${label} (set instagramHandle in src/config/brand.json)`} />
+  )
+}

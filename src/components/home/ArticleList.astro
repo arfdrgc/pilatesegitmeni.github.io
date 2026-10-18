@@ -1,0 +1,244 @@
+---
+import { Picture } from 'astro:assets';
+import type { Lang } from '../../i18n/ui';
+import { t } from '../../i18n/utils';
+import { articleUrl, type Article } from '../../lib/articles';
+import ArticleMeta from '../ArticleMeta.astro';
+
+interface Props {
+  articles: Article[];
+  lang: Lang;
+  /** Articles index path; the "All articles" link only renders when it exists. */
+  allArticlesPath?: string;
+  /** Number shown on the first card's tile (the featured article above is 1). */
+  firstNumber?: number;
+}
+
+const { articles, lang, allArticlesPath, firstNumber = 1 } = Astro.props;
+const headingId = `latest-${lang}`;
+const markers = (article: Article) => ({
+  ...(article.data.sample ? { 'data-sample': '' } : {}),
+  ...(article.data.draft ? { 'data-dev-only': '' } : {}),
+});
+// Articles without a cover get a decorative tinted tile with their position number.
+const tileNumber = (index: number) => String(firstNumber + index).padStart(2, '0');
+---
+
+<section class="latest container" aria-labelledby={headingId}>
+  <h2 id={headingId} class="latest__heading">{t(lang).latestArticles}</h2>
+  <ul class="latest__list" role="list">
+    {
+      articles.map((article, index) => (
+        <li class="card" {...markers(article)}>
+          {article.data.cover ? (
+            <figure class="card__media">
+              <Picture
+                src={article.data.cover.src}
+                alt={article.data.cover.alt}
+                formats={['avif', 'webp']}
+                widths={[200, 400, 600, 800]}
+                sizes="(min-width: 80rem) 25rem, (min-width: 48rem) 30vw, 6rem"
+                width={800}
+                height={533}
+                fit="cover"
+                class="card__image"
+              />
+              <figcaption class="card__credit ui">
+                {t(lang).photoCredit} {article.data.cover.credit}
+              </figcaption>
+            </figure>
+          ) : (
+            <div class="card__media card__tile" aria-hidden="true">
+              <span class="card__number">{tileNumber(index)}</span>
+            </div>
+          )}
+          <div class="card__body">
+            <div class="card__meta">
+              <ArticleMeta article={article} lang={lang} part="date" class="card__date" />
+              <ArticleMeta article={article} lang={lang} part="category" class="card__category" />
+            </div>
+            <h3 class="card__title">
+              <a href={articleUrl(article)}>{article.data.title}</a>
+            </h3>
+            <p class="card__summary">{article.data.description}</p>
+          </div>
+        </li>
+      ))
+    }
+  </ul>
+  {
+    allArticlesPath && (
+      <p class="latest__all ui">
+        <a href={allArticlesPath}>{t(lang).allArticles} →</a>
+      </p>
+    )
+  }
+</section>
+
+<style>
+  .latest {
+    padding-block: var(--section-pad);
+  }
+
+  .latest__heading {
+    padding-bottom: var(--space-3);
+    border-bottom: 1px solid var(--color-text);
+    font-size: var(--text-h2);
+    font-weight: 350;
+    line-height: 1.1;
+    letter-spacing: -0.015em;
+  }
+
+  .latest__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  /* Mobile: rows with a small tile or thumbnail beside the title. */
+  .card {
+    display: grid;
+    grid-template-columns: 6rem minmax(0, 1fr);
+    gap: var(--space-3);
+    padding-block: var(--space-4);
+    border-bottom: 1px solid var(--color-rule);
+  }
+
+  .card__media :global(img),
+  .card__tile {
+    width: 100%;
+    aspect-ratio: 4 / 5;
+    object-fit: cover;
+  }
+
+  .card__credit {
+    margin-top: var(--space-1);
+    color: var(--color-muted);
+    font-size: 0.6875rem;
+    font-weight: 400;
+  }
+
+  /* Tiles cycle through linen, clay and sage. */
+  .card__tile {
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    padding: var(--space-2);
+    background: var(--color-surface);
+    color: var(--color-muted);
+  }
+
+  .card:nth-child(3n + 2) .card__tile {
+    background: var(--color-tile);
+    color: var(--color-accent);
+  }
+
+  .card:nth-child(3n) .card__tile {
+    background: var(--color-panel);
+    color: var(--color-sage);
+  }
+
+  .card__number {
+    font-size: 2.625rem;
+    font-style: italic;
+    font-weight: 300;
+    line-height: 0.8;
+  }
+
+  .card__body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    min-width: 0;
+  }
+
+  .card__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-1) var(--space-3);
+  }
+
+  .card__meta :global(.card__date) {
+    font-size: var(--text-small);
+    font-weight: 400;
+  }
+
+  .card__title {
+    font-size: var(--text-card);
+    line-height: 1.2;
+  }
+
+  .card__title a {
+    color: var(--color-text);
+    text-decoration: none;
+  }
+
+  .card__title a:hover {
+    text-decoration-line: underline;
+    text-decoration-thickness: 1px;
+  }
+
+  /* The summary appears with the larger card layout only. */
+  .card__summary {
+    display: none;
+    color: var(--color-muted);
+    font-size: 1.0625rem;
+    line-height: 1.55;
+  }
+
+  .latest__all {
+    margin-top: var(--space-4);
+  }
+
+  .latest__all a {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap-min);
+  }
+
+  /* Desktop: a three-column grid of cards with 3:2 tiles. */
+  @media (min-width: 48rem) {
+    .latest__list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(17.5rem, 1fr));
+      gap: var(--space-6) var(--space-5);
+      padding-top: var(--space-5);
+    }
+
+    .card {
+      grid-template-columns: minmax(0, 1fr);
+      align-content: start;
+      gap: var(--space-4);
+      padding-block: 0;
+      border-bottom: 0;
+    }
+
+    .card__media :global(img),
+    .card__tile {
+      aspect-ratio: 3 / 2;
+    }
+
+    .card__tile {
+      padding: var(--space-4);
+    }
+
+    .card__number {
+      font-size: 5.75rem;
+    }
+
+    .card__body {
+      gap: var(--space-3);
+    }
+
+    .card__summary {
+      display: block;
+    }
+  }
+
+  @media (min-width: 64rem) {
+    .latest__list {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+</style>

@@ -1,0 +1,61 @@
+---
+// Temporary public homepage while the site is being prepared. Copy lives in
+// src/config/coming-soon.json. The original homepage (home/HomePage.astro) is
+// unchanged and previewable in development at /dev/home/ and /en/dev/home/.
+import comingSoon from '../config/coming-soon.json';
+import type { Lang } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const copy = comingSoon[lang];
+---
+
+<div class="soon container">
+  <p class="soon__label label">{copy.label}</p>
+  <h1 class="soon__title display">{copy.title}</h1>
+  <p class="soon__message">{copy.message}</p>
+</div>
+
+<style>
+  /* Mobile: label, title, then a short sage rule and the message. */
+  .soon {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: var(--space-4);
+    min-height: min(65svh, 40rem);
+    padding-block: var(--section-pad);
+  }
+
+  .soon__label {
+    color: var(--color-sage);
+  }
+
+  .soon__title {
+    max-width: 9em;
+  }
+
+  .soon__message {
+    max-width: 22em;
+    color: var(--color-muted);
+    font-size: var(--text-lead);
+    line-height: 1.55;
+  }
+
+  .soon__message::before {
+    content: '';
+    display: block;
+    width: 3rem;
+    margin-bottom: var(--space-4);
+    border-top: 1px solid var(--color-sage);
+  }
+
+  @media (min-width: 48rem) {
+    .soon {
+      gap: var(--space-5);
+    }
+  }
+</style>

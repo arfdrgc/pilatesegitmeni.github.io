@@ -1,0 +1,28 @@
+---
+// Development-only preview of the original homepage while / and /en/ show the
+// temporary coming-soon page. astro.config.mjs injects this route at
+// /dev/home/ and /en/dev/home/ under `astro dev` only, so a production build
+// never compiles it (scripts/check-dist.mjs also fails on any built dev/ page).
+import HomePage from '../components/home/HomePage.astro';
+import brand from '../config/brand.json';
+import home from '../config/home.json';
+import { getLang, homePath } from '../i18n/utils';
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const lang = getLang(Astro.currentLocale);
+const description: string | null = home[lang].metaDescription;
+---
+
+<BaseLayout title={brand.name} description={description ?? undefined} translations={{ tr: '/dev/home/', en: '/en/dev/home/' }}>
+  <p class="container ui dev-preview" data-dev-only>
+    Development preview of the original homepage. Not built in production; {homePath(lang)} shows the coming-soon page.
+  </p>
+  <HomePage lang={lang} />
+</BaseLayout>
+
+<style>
+  .dev-preview {
+    padding-top: var(--space-4);
+    color: var(--color-muted);
+  }
+</style>

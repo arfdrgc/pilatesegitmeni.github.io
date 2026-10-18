@@ -1,0 +1,108 @@
+---
+import brand from '../config/brand.json';
+import { headerNav } from '../config/navigation';
+import type { Lang } from '../i18n/ui';
+import { homePath, t, type Translations } from '../i18n/utils';
+import InstagramLink from './InstagramLink.astro';
+import LanguageLink from './LanguageLink.astro';
+
+interface Props {
+  lang: Lang;
+  translations: Translations;
+}
+
+const { lang, translations } = Astro.props;
+---
+
+<header class="site-header container">
+  <div class="site-header__inner">
+    <a class="wordmark" href={homePath(lang)}>{brand.name}</a>
+    <nav class="site-nav ui" aria-label={t(lang).mainNav}>
+      {
+        headerNav.map((item) => (
+          <a
+            class="site-nav__link"
+            href={item.path[lang]}
+            aria-current={Astro.url.pathname === item.path[lang] ? 'page' : undefined}
+          >
+            {item.label[lang]}
+          </a>
+        ))
+      }
+      <InstagramLink class="site-nav__link" />
+      <LanguageLink class="site-nav__link" lang={lang} translations={translations} />
+    </nav>
+  </div>
+</header>
+
+<style>
+  /* Mobile: wordmark left, links right. */
+  .site-header__inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2) var(--space-4);
+    padding-block: var(--space-4) var(--space-3);
+  }
+
+  /* Masthead rule: a text-coloured line over a hairline. */
+  .site-header::after {
+    content: '';
+    display: block;
+    height: 3px;
+    border-top: 1px solid var(--color-text);
+    border-bottom: 1px solid var(--color-rule);
+  }
+
+  .wordmark {
+    color: var(--color-text);
+    font-family: var(--font-serif);
+    font-size: var(--text-wordmark);
+    font-weight: 400;
+    line-height: 1;
+    letter-spacing: -0.015em;
+    text-decoration: none;
+  }
+
+  .site-nav {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--space-1) var(--space-4);
+  }
+
+  .site-nav :global(.site-nav__link) {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap-min);
+    color: var(--color-text);
+    text-decoration: none;
+  }
+
+  /* Desktop: centred wordmark, links aligned right. */
+  @media (min-width: 48rem) {
+    .site-header__inner {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      gap: var(--space-4);
+      padding-block: var(--space-5) var(--space-4);
+    }
+
+    .wordmark {
+      grid-column: 2;
+    }
+
+    .site-nav {
+      grid-column: 3;
+    }
+  }
+
+  .site-nav :global(a.site-nav__link:hover),
+  .site-nav :global(a.site-nav__link[aria-current='page']) {
+    text-decoration-line: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.3em;
+  }
+</style>

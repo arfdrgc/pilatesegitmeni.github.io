@@ -1,0 +1,23 @@
+{
+  "name": "pilatesegitmeni",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.22.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "node scripts/keep-dev-imports.mjs astro build && node scripts/check-dist.mjs",
+    "preview": "astro preview",
+    "check": "node scripts/keep-dev-imports.mjs astro check && node scripts/check-contrast.mjs"
+  },
+  "dependencies": {
+    "@astrojs/sitemap": "3.7.4",
+    "astro": "7.3.8"
+  },
+  "devDependencies": {
+    "@astrojs/check": "0.9.10",
+    "typescript": "6.0.3"
+  }
+}

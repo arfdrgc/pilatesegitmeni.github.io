@@ -1,0 +1,25 @@
+---
+// The only way to render a TODO placeholder. It exists in local development
+// only, and always carries data-dev-only so scripts/check-dist.mjs can prove
+// none reaches production.
+interface Props {
+  label: string;
+  as?: 'span' | 'p' | 'div';
+  class?: string;
+}
+
+const { label, as: Tag = 'span', class: className } = Astro.props;
+---
+
+{
+  import.meta.env.DEV && (
+    <Tag
+      class={className}
+      data-dev-only
+      title="Development placeholder; not rendered in production"
+      style="border: 1px dashed currentColor; padding: 0.1em 0.4em;"
+    >
+      TODO: {label}
+    </Tag>
+  )
+}
