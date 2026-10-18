@@ -16,11 +16,10 @@ const copy = comingSoon[lang];
 <div class="soon container">
   <p class="soon__label label">{copy.label}</p>
   <h1 class="soon__title display">{copy.title}</h1>
-  <p class="soon__message">{copy.message}</p>
 </div>
 
 <style>
-  /* Mobile: label, title, then a short sage rule and the message. */
+  /* Label above the title, vertically centred in the space between header and footer. */
   .soon {
     display: flex;
     flex-direction: column;
@@ -36,21 +35,6 @@ const copy = comingSoon[lang];
 
   .soon__title {
     max-width: 9em;
-  }
-
-  .soon__message {
-    max-width: 22em;
-    color: var(--color-muted);
-    font-size: var(--text-lead);
-    line-height: 1.55;
-  }
-
-  .soon__message::before {
-    content: '';
-    display: block;
-    width: 3rem;
-    margin-bottom: var(--space-4);
-    border-top: 1px solid var(--color-sage);
   }
 
   @media (min-width: 48rem) {

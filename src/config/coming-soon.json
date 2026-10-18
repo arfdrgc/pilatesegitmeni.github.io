@@ -1,14 +1,12 @@
 {
   "tr": {
-    "title": "Yapım aşamasında",
+    "title": "Yakında yayındayız",
     "label": "Bağımsız Pilates yayını",
-    "message": "İlk yazılar hazırlanıyor. Uğradığınız için teşekkür ederiz.",
-    "metaDescription": "pilatesegitmeni, bağımsız bir Pilates yayını olarak yapım aşamasında. İlk yazılar hazırlanıyor."
+    "metaDescription": "pilatesegitmeni yakında yayında."
   },
   "en": {
     "title": "Coming soon",
     "label": "Independent Pilates publication",
-    "message": "The first articles are in preparation. Thank you for stopping by.",
-    "metaDescription": "pilatesegitmeni, an independent Pilates publication, is coming soon. The first articles are in preparation."
+    "metaDescription": "pilatesegitmeni is coming soon."
   }
 }
