@@ -1,10 +1,10 @@
 ---
-import brand from '../config/brand.json';
 import { footerNav } from '../config/navigation';
 import type { Lang } from '../i18n/ui';
 import type { Translations } from '../i18n/utils';
 import InstagramLink from './InstagramLink.astro';
 import LanguageLink from './LanguageLink.astro';
+import Logo from './Logo.astro';
 
 interface Props {
   lang: Lang;
@@ -16,7 +16,7 @@ const { lang, translations } = Astro.props;
 
 <footer class="site-footer">
   <div class="container site-footer__inner ui">
-    <p class="site-footer__brand">{brand.name}</p>
+    <p class="site-footer__brand"><Logo lang={lang} sizes="(min-width: 48rem) 17.89rem, 11.63rem" /></p>
     {
       footerNav.length > 0 && (
         <ul class="site-footer__links site-footer__pages" role="list">
@@ -36,7 +36,7 @@ const { lang, translations } = Astro.props;
     }
     <div class="site-footer__links">
       <LanguageLink class="site-footer__link" lang={lang} translations={translations} />
-      <InstagramLink class="site-footer__link" />
+      <InstagramLink class="site-footer__link" showHandle />
     </div>
   </div>
 </footer>
@@ -62,13 +62,10 @@ const { lang, translations } = Astro.props;
     border-top: 1px solid var(--color-rule);
   }
 
-  .site-footer__brand {
-    color: var(--color-text);
-    font-family: var(--font-serif);
-    font-size: var(--text-footer-mark);
-    font-weight: 300;
-    line-height: 0.95;
-    letter-spacing: -0.025em;
+  /* The wide logo, which carries the name. Scaled by 916/1024 so the artwork
+     keeps the size it had in the earlier, wider 1024 × 400 file. */
+  .site-footer__brand :global(.logo) {
+    width: calc(clamp(13rem, 9rem + 10vw, 20rem) * 916 / 1024);
   }
 
   .site-footer__links {

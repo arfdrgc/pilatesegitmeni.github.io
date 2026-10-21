@@ -6,9 +6,11 @@ interface Props {
   class?: string;
   /** Visible link text; defaults to "Instagram". */
   label?: string;
+  /** Show the Instagram glyph and "@handle" instead of the label. */
+  showHandle?: boolean;
 }
 
-const { class: className, label = 'Instagram' } = Astro.props;
+const { class: className, label = 'Instagram', showHandle = false } = Astro.props;
 
 const handle: string | null = brand.instagramHandle;
 if (handle !== null && !/^[A-Za-z0-9._]{1,30}$/.test(handle)) {
@@ -18,10 +20,31 @@ if (handle !== null && !/^[A-Za-z0-9._]{1,30}$/.test(handle)) {
 
 {
   handle ? (
-    <a class={className} href={`https://www.instagram.com/${handle}/`}>
-      {label}
-    </a>
+    showHandle ? (
+      <a class={className} href={`https://www.instagram.com/${handle}/`} aria-label={`Instagram: @${handle}`}>
+        {/* The Instagram glyph: rounded square, lens and flash dot. */}
+        <svg class="instagram-link__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <rect x="2" y="2" width="20" height="20" rx="5.5" fill="none" stroke="currentColor" stroke-width="2" />
+          <circle cx="12" cy="12" r="4.6" fill="none" stroke="currentColor" stroke-width="2" />
+          <circle cx="17.6" cy="6.4" r="1.25" fill="currentColor" />
+        </svg>
+        @{handle}
+      </a>
+    ) : (
+      <a class={className} href={`https://www.instagram.com/${handle}/`}>
+        {label}
+      </a>
+    )
   ) : (
     <DevPlaceholder class={className} label={`${label} (set instagramHandle in src/config/brand.json)`} />
   )
 }
+
+<style>
+  .instagram-link__icon {
+    flex: none;
+    width: 1.125em;
+    height: 1.125em;
+    margin-inline-end: 0.5em;
+  }
+</style>

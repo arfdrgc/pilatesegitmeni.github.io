@@ -1,11 +1,11 @@
 /*
- * Design tokens. Colour tokens (--color-*) are defined ONLY in the two theme
- * blocks below, as 6-digit hex values. scripts/check-contrast.mjs reads both
- * blocks and fails on any missing, extra, untested or changed colour.
+ * Design tokens. The site is light-only. Colour tokens (--color-*) are defined
+ * ONLY in the :root block below, as 6-digit hex values. scripts/check-contrast.mjs
+ * reads that block and fails on any missing, extra, untested or changed colour.
  */
 
 :root {
-  color-scheme: light dark;
+  color-scheme: only light;
 
   --color-bg: #f8f4ee; /* warm paper: page ground */
   --color-surface: #f0e9df; /* linen: footer */
@@ -62,24 +62,6 @@
   --section-pad: clamp(3.5rem, 2.5rem + 4.444vw, 6.5rem);
   --focus-ring: 2px solid var(--color-focus);
   --tap-min: 2.75rem;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-bg: #1f1c19;
-    --color-surface: #282420;
-    --color-panel: #252b24;
-    --color-tile: #2e2521;
-    --color-text: #f0eae1;
-    --color-muted: #bdb2a4;
-    --color-accent: #e3a283;
-    --color-sage: #aebda5;
-    --color-focus: #e3a283;
-    --color-rule: #3d3731;
-    --color-band: #2f3a2d;
-    --color-band-text: #eef0e8;
-    --color-band-muted: #c3ccbb;
-  }
 }
 
 @media (min-width: 48rem) {

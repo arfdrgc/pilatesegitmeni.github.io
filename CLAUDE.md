@@ -24,37 +24,28 @@ pilatesegitmeni.com is an independent Pilates information and editorial brand. I
 - Articles are Markdown files in Astro content collections, validated by a frontmatter schema.
 - Turkish is the default language and lives at the root (`/`); English lives under `/en/` (Astro i18n with `prefixDefaultLocale: false`).
 - No analytics, cookies or third-party tracking scripts for now.
-- Instagram: the handle stays an explicit TODO until the real account is provided. Don't guess one. Use plain links, not embedded feeds.
+- Instagram: the owner's account is `@pilatesegitmeni` (set 2026-10-21). Use plain links, not embedded feeds.
 - Final domain: pilatesegitmeni.com, set once as Astro's `site`. Canonical URLs always use it.
 - Portability: the build must be plain static files that work on any static host. Assume the site is served from the domain root: don't set Astro's `base` or hard-code a GitHub Pages subpath (`/pilatesegitmeni.github.io/`).
 - Hosting: GitHub Pages via GitHub Actions (`.github/workflows/deploy.yml`), but nothing is deployed yet; see "Deployment status" below. Don't assume DNS is configured. Development uses local preview only (`astro dev` / `astro preview`).
 
-## Deployment status (as of 2026-10-19)
+## Deployment status (as of 2026-10-21)
 
-- Commit `ea9ab2d85746d42312568aef64bee04488e08fbb` ("Add manual GitHub Pages deployment workflow") is pushed to `origin/main`.
+- The coming-soon release (TR/EN coming-soon pages, logo, Instagram footer link, bilingual 404, light-only palette) is committed and pushed to `origin/main`. The posture prototype and intro ritual are not part of it and stay uncommitted.
 - `.github/workflows/deploy.yml` triggers only on `workflow_dispatch` (no push trigger). It runs `npm ci` and `npm run build` (so `check-dist` gates the deploy), uploads `dist/` and deploys with `actions/deploy-pages`. It has never run. **The site has NOT been deployed.**
-- No GitHub settings or DNS records have been changed. DNS is at GoDaddy (`ns49`/`ns50.domaincontrol.com`); `@` and `www` still point to `92.205.6.33`.
-- Until this repo has its own custom domain, Pages would serve it under the user site's domain (`arifdurgec.com/pilatesegitmeni.github.io/`), where the root-relative asset paths break. Don't deploy before step 2.
+- DNS (GoDaddy, `ns49`/`ns50.domaincontrol.com`), as observed on 2026-10-21: A `@` → `185.199.108.153`, `.109.153`, `.110.153`, `.111.153` (GitHub Pages); no AAAA records; CNAME `www` → `pilatesegitmeni.com`. Email records are intact: MX `@` → `mail.pilatesegitmeni.com`, A `mail` → `92.205.6.33`, SPF TXT `@` → `v=spf1 a mx ptr include:secureserver.net ~all`.
+- GitHub already serves the domain: `https://pilatesegitmeni.com/` has a Let's Encrypt certificate for the apex only (issued 2026-10-19) and shows GitHub's "Site not found" page, and `arfdrgc.github.io/pilatesegitmeni.github.io/` redirects to `http://pilatesegitmeni.com/`, so the custom domain is set in the repository's Pages settings. `http://` does not redirect to `https://` yet. `https://www.pilatesegitmeni.com/` fails with a certificate mismatch (the certificate is `*.github.io`).
+- Not verified (no `gh` CLI): that the Pages source is `GitHub Actions`, and the Enforce HTTPS setting.
 - No `CNAME` file: GitHub ignores it for Actions deployments; the custom domain lives in the repository's Pages settings.
 
 Next steps, in order (each GitHub/DNS change is done by the owner, not Claude):
 
-1. Verify `pilatesegitmeni.com` in GitHub profile Settings → Pages, using the unique TXT record GitHub provides. Add it in GoDaddy as `_github-pages-challenge-arfdrgc`.
-2. In repository Settings → Pages, select `GitHub Actions` as the source and set the custom domain to `pilatesegitmeni.com`.
-3. Update GoDaddy DNS:
-   - A `@` → `185.199.108.153`
-   - A `@` → `185.199.109.153`
-   - A `@` → `185.199.110.153`
-   - A `@` → `185.199.111.153`
-   - AAAA `@` → `2606:50c0:8000::153`
-   - AAAA `@` → `2606:50c0:8001::153`
-   - AAAA `@` → `2606:50c0:8002::153`
-   - AAAA `@` → `2606:50c0:8003::153`
-   - Change CNAME `www` to `arfdrgc.github.io`.
-   - Delete the old A `@` record pointing to `92.205.6.33`.
-4. Preserve all email records, including MX `@` → `mail.pilatesegitmeni.com`, A `mail` → `92.205.6.33`, SPF TXT `@` → `v=spf1 a mx ptr include:secureserver.net ~all`, and every other email-related record.
-5. Wait for GitHub's DNS check and HTTPS certificate, then enable Enforce HTTPS.
-6. Run the manual deployment workflow ONLY after the owner explicitly confirms the site is ready to publish.
+1. In repository Settings → Pages, confirm the source is `GitHub Actions` and the custom domain is `pilatesegitmeni.com`.
+2. Run the manual deployment workflow (Actions → "Deploy to GitHub Pages" → Run workflow on `main`) ONLY after the owner explicitly confirms the site is ready to publish.
+3. Check `/`, `/en/`, a missing URL (bilingual 404), `robots.txt` and `sitemap-index.xml` on the live domain.
+4. Enable Enforce HTTPS once GitHub offers it.
+5. Change CNAME `www` to `arfdrgc.github.io` in GoDaddy, so GitHub issues a certificate covering `www` and redirects it to the apex. Optionally add AAAA `@` → `2606:50c0:8000::153`, `2606:50c0:8001::153`, `2606:50c0:8002::153`, `2606:50c0:8003::153`.
+6. Preserve all email records listed above, and every other email-related record.
 
 ## Commands
 
@@ -65,7 +56,7 @@ Next steps, in order (each GitHub/DNS change is done by the owner, not Claude):
   - images without `alt`, `width` or `height`, or with generic or file-name alt text (`alt=""` is allowed for decorative images);
   - canonical, hreflang or sitemap URLs that don't resolve to a built page.
 - `npm run preview`: serve the production build locally.
-- `npm run check`: `astro check` (types), then `scripts/check-contrast.mjs` (approved palette and WCAG contrast in both themes).
+- `npm run check`: `astro check` (types), then `scripts/check-contrast.mjs` (approved light palette and WCAG contrast).
 
 Astro 7 runs `astro dev`/`astro preview` as background processes; stop them with `npx astro dev stop` / `npx astro preview stop`. `npm run check` and `npm run build` can run while the dev server is up: they go through `scripts/keep-dev-imports.mjs`, which restores the dev server's content import maps in `.astro/` afterwards (running `npx astro check`/`build` directly skips this, and the dev server then needs a restart to show sample images). Dependencies are exact-pinned. TypeScript must stay on 6.x: `astro check` and `@astrojs/check` don't support TypeScript 7.
 
@@ -84,9 +75,11 @@ Astro 7 runs `astro dev`/`astro preview` as background processes; stop them with
 - **Homepage:** `src/components/home/HomePage.astro` is shared by `/` and `/en/` (see the coming-soon note above), with sections in the order intro, featured article (newest), latest list (up to 6), Instagram band. Topics are deferred until categories and topic pages are approved.
   - Brand copy slots live in `src/config/home.json`. `null` means the content is left out in production and shown as a TODO in dev; never fall back to the other language's text.
   - A section with no real content is not rendered at all in production: no empty sections, no "coming soon".
+- **404 page:** `src/pages/404.astro` (content in `src/components/NotFound.astro`) builds `dist/404.html`. GitHub Pages serves only that file for every missing URL, `/en/` included, so it is one bilingual page: `<html lang="tr">`, Turkish first, then an English block with `lang="en"`, each linking to its own homepage. There is no script that picks the language from the URL. Don't add `src/pages/en/404.astro`: Pages never serves it, and `check-dist` would fail it for having no canonical link and no sitemap entry. The page passes `notFound` and empty `translations` to `BaseLayout`, so `SeoHead.astro` emits `noindex` and no canonical, hreflang or `og:url`. The sitemap integration leaves 404 pages out on its own.
 - **Navigation:** header and footer items, and the articles index link, live in `src/config/navigation.ts`. Add an item only once its page exists in both languages.
 - **Dev-only placeholders:** render TODOs only through `src/components/DevPlaceholder.astro`. Anything else dev-only (draft badges, the dev note, the Instagram band without a handle) must carry `data-dev-only`, which is what `check-dist` looks for. Sample cards carry `data-sample`.
-- **Instagram:** `src/config/brand.json` holds `instagramHandle` (currently `null`). While it's null, no Instagram link renders in production. Once set, it is the only Instagram URL `check-dist` allows.
-- **Styling:** plain CSS. All colours are `--color-*` tokens in `src/styles/tokens.css` (light `:root`, plus a `prefers-color-scheme: dark` block; there is no manual theme toggle). `check-contrast.mjs` holds the approved palette and rejects any colour defined elsewhere, so changing a colour means updating both files after approval. The `theme-color` metas in `SeoHead.astro` must match `--color-bg`.
+- **Instagram:** `src/config/brand.json` holds `instagramHandle` (`"pilatesegitmeni"` since 2026-10-21; while it is `null`, no Instagram link renders in production). It is the only Instagram URL `check-dist` allows, `https://www.instagram.com/pilatesegitmeni/`. `InstagramLink.astro` renders it as a text link (Instagram band) or, with `showHandle`, as an inline-SVG Instagram glyph plus `@pilatesegitmeni` with the accessible name "Instagram: @pilatesegitmeni" (footer). The header has no Instagram link (owner's decision, 2026-10-21). There is no icon library; the glyph is drawn in the component. Links open in the same tab, like every other link on the site.
+- **Styling:** plain CSS. The site is light-only by design: no dark mode, no `prefers-color-scheme` styles and no theme toggle. All colours are `--color-*` tokens in the single `:root` block of `src/styles/tokens.css`, which sets `color-scheme: only light` so browsers don't apply automatic dark modes. `check-contrast.mjs` holds the approved palette, fails if a dark block reappears, and rejects any colour defined elsewhere, so changing a colour means updating both files after approval. The single `theme-color` meta in `SeoHead.astro` (no `media` attribute) must match `--color-bg`.
 - **Fonts:** self-hosted Newsreader (editorial text) and Inter (navigation, dates, labels) WOFF2 files in `public/fonts/`, copied from `@fontsource-variable/*@5.3.0`, each with its OFL licence. Fontsource is deliberately not a dependency. Turkish text needs both the latin and latin-ext files. Common ligatures are off for `:lang(tr)` because Newsreader's "fi" ligature hides the i/ı distinction.
+- **Logo:** `src/assets/logo-wordmark.png`, the owner's wide "Pilates Eğitmeni" wordmark (an unmodified copy of `../reference_assets/logo_book_v2_transparent.png`, 916 × 400 RGBA PNG with a real transparent background; since 2026-10-21). `src/components/Logo.astro` renders it through `astro:assets` as PNG (alpha kept) at 384/640/916 px with `srcset`/`sizes` and the intrinsic `width`/`height`, so its space is reserved before it loads. Alt text is `logoAlt` in `src/i18n/ui.ts` ("Pilates Eğitmeni logosu" / "Pilates Eğitmeni logo"). The artwork carries the name, so the header (home link) and footer show the logo alone. Their widths are the earlier JPEG's `clamp()` values (header `12rem` → `18rem`, footer `13rem` → `20rem`) multiplied by 916/1024, so the artwork, whose side margins are narrower in this file, renders at the same size as before (about 10.73 → 16.1rem and 11.63 → 17.89rem, with matching `sizes` hints). They show it with no name text, straight on `--color-bg` and `--color-surface`. The PNG's semi-transparent edge pixels are light (matted from white), which is invisible on these light grounds but would show as a pale fringe on a dark one such as `--color-band`. To update the logo, replace that file under the same name. The earlier opaque JPEG (`src/assets/logo.jpg`, a copy of `../reference_assets/logo_book_v1_wide.jpg`) was removed once unreferenced; the original stays in `reference_assets/`. The previous "P" monogram, `src/assets/logo.png`, is no longer referenced (so not built) and was left in place as the only copy. There is no favicon or `og:image`.
 - **Domain:** `site` in `astro.config.mjs` is the only place the domain appears. Never set `base`.

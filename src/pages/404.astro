@@ -1,0 +1,13 @@
+---
+// Built as dist/404.html, which GitHub Pages serves for every missing URL,
+// /en/ included. It is the only 404 page and holds both languages; don't add
+// src/pages/en/404.astro (see CLAUDE.md).
+import NotFound from '../components/NotFound.astro';
+import brand from '../config/brand.json';
+import { t } from '../i18n/utils';
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title={`${brand.name} · ${t('tr').notFoundTitle} / ${t('en').notFoundTitle}`} translations={{}} notFound>
+  <NotFound />
+</BaseLayout>

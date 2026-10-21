@@ -1,0 +1,40 @@
+---
+// The site logo: the owner's wide "Pilates Eğitmeni" wordmark (916 × 400 PNG
+// with a transparent background). src/assets/logo-wordmark.png is its only
+// source: replace that file (same name) to update the logo everywhere; the
+// build re-renders it, keeping the transparency. The artwork carries the name,
+// so callers show no separate name text. Its width is set by the caller;
+// height follows the artwork's own ratio.
+import { Image } from 'astro:assets';
+import logo from '../assets/logo-wordmark.png';
+import type { Lang } from '../i18n/ui';
+import { t } from '../i18n/utils';
+
+interface Props {
+  lang: Lang;
+  /** The rendered width per viewport, for the browser to pick a file. */
+  sizes: string;
+  /** Load straight away; for the header, which is always in view. */
+  priority?: boolean;
+}
+
+const { lang, sizes, priority = false } = Astro.props;
+---
+
+<Image
+  src={logo}
+  alt={t(lang).logoAlt}
+  widths={[384, 640, 916]}
+  sizes={sizes}
+  format="png"
+  priority={priority}
+  class="logo"
+/>
+
+<style>
+  .logo {
+    display: block;
+    max-width: 100%;
+    height: auto;
+  }
+</style>

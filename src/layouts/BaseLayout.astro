@@ -12,16 +12,18 @@ interface Props {
   description?: string;
   /** Every built language version of this page, including the current one. */
   translations: Translations;
+  /** Only for src/pages/404.astro, which passes empty translations. */
+  notFound?: boolean;
 }
 
-const { title, description, translations } = Astro.props;
+const { title, description, translations, notFound } = Astro.props;
 const lang = getLang(Astro.currentLocale);
 ---
 
 <!doctype html>
 <html lang={lang}>
   <head>
-    <SeoHead title={title} description={description} lang={lang} translations={translations} />
+    <SeoHead title={title} description={description} lang={lang} translations={translations} notFound={notFound} />
   </head>
   <body>
     <a class="skip-link" href="#main">{t(lang).skipToContent}</a>
