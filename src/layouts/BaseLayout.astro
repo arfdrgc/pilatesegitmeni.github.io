@@ -14,9 +14,11 @@ interface Props {
   translations: Translations;
   /** Only for src/pages/404.astro, which passes empty translations. */
   notFound?: boolean;
+  /** Only for the coming-soon pages: the approved A · Open lockup in place of the wordmark PNG. */
+  lockup?: boolean;
 }
 
-const { title, description, translations, notFound } = Astro.props;
+const { title, description, translations, notFound, lockup } = Astro.props;
 const lang = getLang(Astro.currentLocale);
 ---
 
@@ -27,10 +29,10 @@ const lang = getLang(Astro.currentLocale);
   </head>
   <body>
     <a class="skip-link" href="#main">{t(lang).skipToContent}</a>
-    <SiteHeader lang={lang} translations={translations} />
+    <SiteHeader lang={lang} translations={translations} lockup={lockup} />
     <main id="main" tabindex="-1">
       <slot />
     </main>
-    <SiteFooter lang={lang} translations={translations} />
+    <SiteFooter lang={lang} translations={translations} lockup={lockup} />
   </body>
 </html>

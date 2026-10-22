@@ -1,0 +1,46 @@
+---
+// The approved A · Open primary lockup: symbol plus the two-line wordmark
+// "pilates / eğitmeni" (TR) or "pilates / instructor" (EN). For now only the
+// coming-soon pages show it, through BaseLayout's `lockup` prop; every other
+// page keeps Logo.astro. The SVGs in src/assets/logo-a-open/ are unedited
+// copies of the approved files in
+// logo-refinement-a-open-2026-10-22/wordmark-revision/svg/. They load as
+// files, not inline, so their internal ids can't clash when the header and
+// footer both show one. Its width is set by the caller; height follows the
+// artwork's own ratio.
+import lockupEn from '../assets/logo-a-open/lockup-primary-en.svg';
+import lockupTr from '../assets/logo-a-open/lockup-primary-tr.svg';
+import type { Lang } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+  /** Load straight away; for the header, which is always in view. */
+  priority?: boolean;
+}
+
+const lockups = {
+  tr: { file: lockupTr, alt: 'Pilates Eğitmeni logosu' },
+  en: { file: lockupEn, alt: 'Pilates Instructor logo' },
+};
+
+const { lang, priority = false } = Astro.props;
+const { file, alt } = lockups[lang];
+---
+
+<img
+  src={file.src}
+  width={file.width}
+  height={file.height}
+  alt={alt}
+  loading={priority ? 'eager' : 'lazy'}
+  decoding="async"
+  class="logo-lockup"
+/>
+
+<style>
+  .logo-lockup {
+    display: block;
+    max-width: 100%;
+    height: auto;
+  }
+</style>

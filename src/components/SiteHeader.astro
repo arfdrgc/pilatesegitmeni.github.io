@@ -4,18 +4,23 @@ import type { Lang } from '../i18n/ui';
 import { homePath, t, type Translations } from '../i18n/utils';
 import LanguageLink from './LanguageLink.astro';
 import Logo from './Logo.astro';
+import LogoLockup from './LogoLockup.astro';
 
 interface Props {
   lang: Lang;
   translations: Translations;
+  /** The A · Open lockup instead of Logo; see BaseLayout. */
+  lockup?: boolean;
 }
 
-const { lang, translations } = Astro.props;
+const { lang, translations, lockup = false } = Astro.props;
 ---
 
 <header class="site-header container">
   <div class="site-header__inner">
-    <a class="wordmark" href={homePath(lang)}><Logo lang={lang} sizes="(min-width: 48rem) 16.1rem, 10.73rem" priority /></a>
+    <a class="wordmark" href={homePath(lang)}>
+      {lockup ? <LogoLockup lang={lang} priority /> : <Logo lang={lang} sizes="(min-width: 48rem) 16.1rem, 10.73rem" priority />}
+    </a>
     <nav class="site-nav ui" aria-label={t(lang).mainNav}>
       {
         headerNav.map((item) => (
@@ -61,6 +66,10 @@ const { lang, translations } = Astro.props;
 
   .wordmark :global(.logo) {
     width: calc(clamp(12rem, 7.5rem + 12vw, 18rem) * 916 / 1024);
+  }
+
+  .wordmark :global(.logo-lockup) {
+    width: clamp(10.5rem, 6.5rem + 11vw, 16rem);
   }
 
   .site-nav {

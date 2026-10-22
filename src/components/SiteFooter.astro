@@ -5,18 +5,23 @@ import type { Translations } from '../i18n/utils';
 import InstagramLink from './InstagramLink.astro';
 import LanguageLink from './LanguageLink.astro';
 import Logo from './Logo.astro';
+import LogoLockup from './LogoLockup.astro';
 
 interface Props {
   lang: Lang;
   translations: Translations;
+  /** The A · Open lockup instead of Logo; see BaseLayout. */
+  lockup?: boolean;
 }
 
-const { lang, translations } = Astro.props;
+const { lang, translations, lockup = false } = Astro.props;
 ---
 
 <footer class="site-footer">
   <div class="container site-footer__inner ui">
-    <p class="site-footer__brand"><Logo lang={lang} sizes="(min-width: 48rem) 17.89rem, 11.63rem" /></p>
+    <p class="site-footer__brand">
+      {lockup ? <LogoLockup lang={lang} /> : <Logo lang={lang} sizes="(min-width: 48rem) 17.89rem, 11.63rem" />}
+    </p>
     {
       footerNav.length > 0 && (
         <ul class="site-footer__links site-footer__pages" role="list">
@@ -66,6 +71,10 @@ const { lang, translations } = Astro.props;
      keeps the size it had in the earlier, wider 1024 × 400 file. */
   .site-footer__brand :global(.logo) {
     width: calc(clamp(13rem, 9rem + 10vw, 20rem) * 916 / 1024);
+  }
+
+  .site-footer__brand :global(.logo-lockup) {
+    width: clamp(11.5rem, 8rem + 9vw, 17.5rem);
   }
 
   .site-footer__links {

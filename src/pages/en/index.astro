@@ -8,6 +8,6 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 const copy = comingSoon.en;
 ---
 
-<BaseLayout title={`${brand.name} · ${copy.title}`} description={copy.metaDescription} translations={{ tr: '/', en: '/en/' }}>
+<BaseLayout title={`${brand.name} · ${copy.title}`} description={copy.metaDescription} translations={{ tr: '/', en: '/en/' }} lockup>
   <ComingSoon lang="en" />
 </BaseLayout>
