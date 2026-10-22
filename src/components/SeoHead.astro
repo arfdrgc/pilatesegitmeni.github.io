@@ -52,6 +52,11 @@ const organization = {
 
 // The theme-color value below must match --color-bg in src/styles/tokens.css
 // (verified by scripts/check-contrast.mjs).
+
+// Favicons in public/ are byte copies of the approved brand-library files
+// (../brand-assets/logo/icon/favicon-draft/): favicon.svg is the adaptive SVG,
+// showing the compact symbol, or its reverse under a dark colour scheme;
+// favicon.ico (16-48 px, light only) is the fallback for browsers without SVG favicons.
 ---
 
 <meta charset="utf-8" />
@@ -76,6 +81,8 @@ const organization = {
 }
 <meta name="twitter:card" content="summary" />
 <meta name="theme-color" content="#f8f4ee" />
+<link rel="icon" href="/favicon.ico" sizes="32x32" />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 
 <link
   rel="preload"
