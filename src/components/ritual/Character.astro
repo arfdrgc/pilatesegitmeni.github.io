@@ -1,0 +1,188 @@
+---
+// One of the characters, front or side view. It renders a <g> in
+// the shared 300 × 460 viewBox of ./proportions.ts, so the caller supplies the
+// <svg>, its label and any cropping. The markup and its joint structure come
+// from ./body.ts, the designs from ./characters/.
+//
+// Skin in --color-skin, with --color-skin-shade for the outlines, shading and
+// fine details, as in the reference sheets; the suit in muted ink with darker
+// outlines; hair and brows in --color-hair, the references' dark brown (the
+// male's brows a little darker, as in his reference).
+// `mode` switches to the construction diagrams: segments outlined with their
+// pivots and the spine's segments marked, or coloured by spinal region.
+import { characterMarkup, type Mode, type View } from './body';
+import type { CharacterId } from './proportions';
+
+interface Props {
+  character: CharacterId;
+  view: View;
+  mode?: Mode;
+}
+
+const { character, view, mode = 'figure' } = Astro.props;
+---
+
+<g class:list={['ch', `ch--${mode}`, `ch--${view}`, `ch--${character}`]} set:html={characterMarkup(character, view, mode)} />
+
+<style>
+  .ch :global(.j) {
+    transform-box: view-box;
+  }
+
+  .ch :global(.skin) {
+    fill: var(--color-skin);
+  }
+
+  .ch :global(.far .skin) {
+    fill: var(--color-skin-shade);
+  }
+
+  .ch :global(.suit) {
+    fill: var(--color-muted);
+  }
+
+  .ch :global(.line),
+  .ch :global(.suit-line),
+  .ch :global(.detail),
+  .ch :global(.lip),
+  .ch :global(.mark),
+  .ch :global(.edge) {
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .ch :global(.line),
+  .ch :global(.line-closed) {
+    stroke: var(--color-skin-shade);
+    stroke-width: 0.7;
+    stroke-linejoin: round;
+  }
+
+  /* Closed shapes (face, ears, hands, feet) show only the outer half of their
+     outline, so the cut edge where a hand or foot tucks under the limb doesn't
+     show through. */
+  .ch :global(.line-closed) {
+    paint-order: stroke;
+    stroke-width: 1;
+  }
+
+  .ch :global(.suit-line) {
+    stroke: var(--color-text);
+    stroke-opacity: 0.55;
+    stroke-width: 0.6;
+  }
+
+  .ch :global(.detail) {
+    stroke: var(--color-skin-shade);
+    stroke-width: 0.5;
+  }
+
+  /* A thin stroke in the same colour closes the seam against the skin. */
+  .ch :global(.hair) {
+    fill: var(--color-hair);
+    stroke: var(--color-hair);
+    stroke-width: 0.3;
+    stroke-linejoin: round;
+  }
+
+  .ch :global(.brow-1) {
+    fill: var(--color-hair);
+  }
+
+  /* The female's brows match her hair (about #583c30 in her reference); the
+     male's are darker (about #442818), so ink deepens them, to about #443126. */
+  .ch :global(.brow-2) {
+    fill: var(--color-text);
+    opacity: 0.4;
+  }
+
+  .ch--female :global(.brow-2) {
+    display: none;
+  }
+
+  .ch :global(.eyes) {
+    fill: var(--color-text);
+  }
+
+  .ch :global(.lip) {
+    stroke: var(--color-accent);
+    stroke-opacity: 0.5;
+    stroke-width: 0.55;
+  }
+
+  /* The jaw's shadow on the neck. */
+  .ch :global(.shade) {
+    fill: var(--color-skin-shade);
+    opacity: 0.55;
+  }
+
+  /* Construction diagram only: segment outlines, pivots, and one short mark
+     per spinal segment along the spine's curve. */
+  .ch :global(.edge),
+  .ch :global(.mark),
+  .ch :global(.pivot) {
+    display: none;
+  }
+
+  /* ---------- Diagrams ---------- */
+
+  .ch--regions :global(.limb),
+  .ch--regions :global(.headpart) {
+    opacity: 0.3;
+  }
+
+  /* The arm would cover the torso the diagrams are about, from the side. */
+  .ch--side.ch--construction :global(.arm),
+  .ch--regions :global(.arm) {
+    display: none;
+  }
+
+  .ch--construction :global(.edge),
+  .ch--regions :global(.edge) {
+    display: inline;
+    stroke: var(--color-text);
+    stroke-opacity: 0.6;
+    stroke-width: 0.45;
+  }
+
+  .ch--construction :global(.band--alt.skin) {
+    fill: var(--color-skin-shade);
+  }
+
+  .ch--construction :global(.band--alt.suit) {
+    opacity: 0.78;
+  }
+
+  .ch--construction :global(.mark) {
+    display: inline;
+    stroke: var(--color-bg);
+    stroke-width: 2.4;
+  }
+
+  .ch--construction :global(.pivot) {
+    display: inline;
+    fill: var(--color-accent);
+  }
+
+  .ch--regions :global(.band--pelvis) {
+    fill: var(--color-muted);
+  }
+
+  .ch--regions :global(.band--lumbar) {
+    fill: var(--color-accent);
+  }
+
+  .ch--regions :global(.band--thoracic) {
+    fill: var(--color-sage);
+  }
+
+  .ch--regions :global(.band--cervical) {
+    fill: var(--color-text);
+  }
+
+  .ch--regions :global(.detail),
+  .ch--regions :global(.suit-line) {
+    display: none;
+  }
+</style>

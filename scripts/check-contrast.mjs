@@ -25,6 +25,9 @@ const APPROVED = {
   band: '#4d5b4a',
   'band-text': '#f6f1e8',
   'band-muted': '#d3d9cc',
+  skin: '#d8b49e',
+  'skin-shade': '#c49a82',
+  hair: '#583c2c',
 };
 
 // [foreground, background, minimum ratio, where the pair is used]
@@ -49,8 +52,9 @@ const PAIRS = [
   ['band-text', 'band', 4.5, 'Text and focus ring in the Instagram band'],
   ['band-muted', 'band', 4.5, 'Secondary text in the Instagram band'],
 ];
-// Hairline rules: decorative only, never the sole carrier of meaning.
-const DECORATIVE = new Set(['rule']);
+// Hairline rules and the character illustration's skin and hair tones: decorative only,
+// never the sole carrier of meaning.
+const DECORATIVE = new Set(['rule', 'skin', 'skin-shade', 'hair']);
 
 const failures = [];
 const fail = (message) => failures.push(message);

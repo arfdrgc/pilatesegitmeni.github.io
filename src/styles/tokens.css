@@ -20,6 +20,9 @@
   --color-band: #4d5b4a; /* Instagram band */
   --color-band-text: #f6f1e8;
   --color-band-muted: #d3d9cc;
+  --color-skin: #d8b49e; /* warm neutral: character illustration */
+  --color-skin-shade: #c49a82; /* deeper skin: far-side limbs, overlaps */
+  --color-hair: #583c2c; /* dark brown: character hair */
 
   --font-serif: 'Newsreader', Georgia, 'Times New Roman', serif;
   --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;

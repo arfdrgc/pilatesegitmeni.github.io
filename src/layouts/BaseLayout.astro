@@ -16,9 +16,11 @@ interface Props {
   notFound?: boolean;
   /** The approved A · Open lockup in place of the wordmark PNG: on the coming-soon pages (/ and /en/) and the 404 page. */
   lockup?: boolean;
+  /** The page shows the homepage intro (components/home-intro/homepage.ts): on the coming-soon pages. */
+  ritual?: boolean;
 }
 
-const { title, description, translations, notFound, lockup } = Astro.props;
+const { title, description, translations, notFound, lockup, ritual } = Astro.props;
 const lang = getLang(Astro.currentLocale);
 ---
 
@@ -26,6 +28,41 @@ const lang = getLang(Astro.currentLocale);
 <html lang={lang}>
   <head>
     <SeoHead title={title} description={description} lang={lang} translations={translations} notFound={notFound} />
+    {
+      /*
+        The homepage intro's state, set before the first paint (see
+        components/home-intro/homepage.ts; the key is the welcome ritual's,
+        which the intro replaced): it plays once per browser tab, the first
+        time a page with it opens; one key for both languages. Reduced
+        motion: no state, so the approved reduced-motion version shows.
+        Already played in this tab, or session storage unavailable: at rest,
+        never replayed automatically. If the player hasn't started within 3 s
+        (its script failed or is very late), at rest too; a started player is
+        never interrupted, as it has left `starting` by then.
+      */
+      ritual && (
+        <script is:inline>
+          (() => {
+            const html = document.documentElement;
+            if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+            const key = 'pilatesegitmeni:welcome-ritual';
+            let first = false;
+            try {
+              if (sessionStorage.getItem(key) === null) {
+                sessionStorage.setItem(key, 'played');
+                first = sessionStorage.getItem(key) === 'played';
+              }
+            } catch {}
+            html.dataset.intro = first ? 'starting' : 'rest';
+            if (first) {
+              setTimeout(() => {
+                if (html.dataset.intro === 'starting') html.dataset.intro = 'rest';
+              }, 3000);
+            }
+          })();
+        </script>
+      )
+    }
   </head>
   <body>
     <a class="skip-link" href="#main">{t(lang).skipToContent}</a>

@@ -273,6 +273,16 @@ for (const file of files) {
   if (/^(?:en\/)?dev(?:\/|$)/.test(rel(file))) fail(rel(file), 'is a development-only route (see dev-home-preview in astro.config.mjs)');
 }
 
+// 10. The welcome ritual ships without its development harness
+// (src/prototypes/posture/IntroHarness.astro): no console hook, no harness
+// controls, and no skip button, which exists only in the harness.
+for (const file of textFiles) {
+  const text = readFileSync(file, 'utf8');
+  if (text.includes('__ritual')) fail(rel(file), "contains the ritual harness's console hook (__ritual)");
+  if (/\bdata-(?:controls|toggle|seek|readout|replay)\b/.test(text)) fail(rel(file), "contains the ritual harness's development controls");
+  if (extname(file) === '.html' && /class="[^"]*\britual__skip\b/.test(text)) fail(rel(file), 'contains a ritual skip button');
+}
+
 // Report.
 console.log(`check-dist: scanned ${files.length} files (${htmlFiles.length} HTML pages) in dist/`);
 console.log(`  pages: ${htmlFiles.map(pagePath).join(', ')}`);

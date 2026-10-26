@@ -1,47 +1,28 @@
 ---
-// Temporary public homepage while the site is being prepared. Copy lives in
-// src/config/coming-soon.json. The original homepage (home/HomePage.astro) is
+// Temporary public homepage while the site is being prepared (/ and /en/):
+// the homepage intro with the approved dot figure (home-intro/HomeIntro.astro,
+// the development preview's live frame, plan step 10), played by
+// home-intro/homepage.ts. Its slogan is the page's <h1>, with the coming-soon
+// line under it; the page's title and meta description stay in
+// src/config/coming-soon.json. The language link is in the header only. The
+// two-character welcome ritual (ritual/WelcomeRitual.astro) is no longer used
+// here and stays on disk. The original homepage (home/HomePage.astro) is
 // unchanged and previewable in development at /dev/home/ and /en/dev/home/.
-import comingSoon from '../config/coming-soon.json';
 import type { Lang } from '../i18n/ui';
+import HomeIntro from './home-intro/HomeIntro.astro';
 
 interface Props {
   lang: Lang;
 }
 
 const { lang } = Astro.props;
-const copy = comingSoon[lang];
 ---
 
-<div class="soon container">
-  <p class="soon__label label">{copy.label}</p>
-  <h1 class="soon__title display">{copy.title}</h1>
-</div>
+<HomeIntro lang={lang} frame="live" id="home-intro" figure="dots" homepage />
 
-<style>
-  /* Label above the title, vertically centred in the space between header and footer. */
-  .soon {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    gap: var(--space-4);
-    min-height: min(65svh, 40rem);
-    padding-block: var(--section-pad);
-  }
+<script>
+  import { startHomepageIntro } from './home-intro/homepage';
 
-  /* pre-line keeps the line breaks written into the label copy. */
-  .soon__label {
-    color: var(--color-sage);
-    white-space: pre-line;
-  }
-
-  .soon__title {
-    max-width: 9em;
-  }
-
-  @media (min-width: 48rem) {
-    .soon {
-      gap: var(--space-5);
-    }
-  }
-</style>
+  const root = document.querySelector<HTMLElement>('[data-intro-homepage]');
+  if (root) startHomepageIntro(root);
+</script>

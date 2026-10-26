@@ -1,0 +1,725 @@
+---
+// The homepage intro (handoff note, 2026-10-23): one female character inside
+// a ring, the text below it and the controls below the text. Frames:
+// - `opening` (plan step 2): the first frame, still. Side view, slouched,
+//   waist-up inside the circle, everything below the waist line hidden; the
+//   title below.
+// - `live` (plan steps 3–4): played by ./scene.ts from the opening to the
+//   menu: the approved 0–16 s intro (the approved player, unchanged), then the
+//   slogan, the camera pulling back, the line going, the side view turning
+//   into the front view, hands on hips and the menu's reveal. The page starts
+//   the scene: the dev preview, and the homepage through ./homepage.ts.
+// - `idle` (plan step 2): the menu, still. Front view, full body, hands on
+//   hips (the existing hanging hand stands in for the approved H1 hand); the
+//   ring's real items (Instagram at 5 o'clock); the slogan as the page's
+//   heading and Replay below it (owner, 2026-10-26: in place of the
+//   coming-soon line).
+// The slogan is the page's <h1> in every frame, transparent until it is shown
+// (never hidden from screen readers). The controls are wired only on the
+// homepage (`homepage`, below); on the dev preview they do nothing.
+// `figure="dots"` (2026-10-25, what the dev preview shows): the approved dot
+// figure on a canvas over the stage in place of the character, played by
+// ./dotScene.ts (stills: drawStill); no character, wipe or pose rules. It
+// opens from a single dot, and (owner's revision, 2026-10-26) the line is her
+// ground in every frame, in one place: at her knees in the intro (the ring
+// sized to her pose, set by the scene), at her feet with the menu (the ring
+// is never shown below it). The motto is set apart from the cues: italic, in quotation marks.
+// `homepage` (plan step 10, / and /en/ through ../ComingSoon.astro): the live
+// frame follows the page's intro state (data-intro on <html>) and is played
+// by ./homepage.ts, with the stop control below the text and Replay under the
+// slogan; see "On the homepage" in the styles.
+import InstagramLink from '../InstagramLink.astro';
+import { homeIntro } from '../../config/home-intro';
+import { ritual } from '../../config/ritual';
+import type { Lang } from '../../i18n/ui';
+import Character from '../ritual/Character.astro';
+import { cssOf, transformsAt } from '../ritual/intro/pose';
+import { DOT_FLOOR } from './dotScene';
+import { ANCHOR_X, LINE_HALF, LINE_Y, RING, STAGE, handsOnHips, idleCamera, openingCamera, pullBack, ringPoint, type Camera } from './geometry';
+
+interface Props {
+  lang: Lang;
+  frame: 'opening' | 'live' | 'idle';
+  /** Unique on the page: scopes this frame's pose rules, clip path and masks. */
+  id: string;
+  /** `dots`: the dot figure in place of the character; see the note at the top. */
+  figure?: 'character' | 'dots';
+  /** The live frame on the homepage, played by ./homepage.ts; see the note at the top. */
+  homepage?: boolean;
+}
+
+const { lang, frame, id, figure = 'character', homepage = false } = Astro.props;
+const dots = figure === 'dots';
+const copy = homeIntro[lang];
+const live = frame === 'live';
+/** The frame has the side view, the waist line and the clip below it. */
+const side = frame !== 'idle';
+/** The frame has the front view and the menu. */
+const front = frame !== 'opening';
+const cues = copy.cues;
+const scope = `[data-intro-frame='${id}']`;
+
+// The pose as CSS rules for this frame. Opening and live: the approved
+// slouched start, from the same function the player uses; once the player
+// drives the figure (data-driven), its inline styles take over, and at 16 s,
+// when it removes them, these rules no longer apply, so she stays upright.
+// Idle: hands on hips. (Live: the scene moves the hands.)
+const rules = dots
+  ? []
+  : side
+  ? Object.entries(transformsAt('female', 0)).map(([joint, transform]) => {
+      const css = Object.entries(cssOf(transform)).filter(([, value]) => value);
+      return `${scope} [data-character='female']:not([data-driven]) .j-${joint}{${css.map(([prop, value]) => `${prop}:${value}`).join(';')}}`;
+    })
+  : Object.entries(handsOnHips).map(([joint, deg]) => `${scope} .intro__front .j-${joint}{rotate:${deg}deg}`);
+
+const place = ({ scale, x, y }: Camera) => `translate(${x.toFixed(2)} ${y.toFixed(2)}) scale(${scale.toFixed(4)})`;
+const frontCamera = live ? pullBack(0, ANCHOR_X.front) : idleCamera;
+/** The frame has the line and the clip below it: the character's side view; with the dots, every frame (her ground). */
+const ground = side || dots;
+/** The line: the character's at the waist; the dots' where her feet stand with the menu (her knees in the intro), in every frame. */
+const lineY = !dots ? LINE_Y : DOT_FLOOR;
+
+// The ring's real items. Only real, usable sections appear (owner,
+// 2026-10-23); today that is Instagram, at 5 o'clock.
+const items = [{ hour: 5, side: 'end' as const }].map((item) => {
+  const { x, y } = ringPoint(item.hour);
+  return { ...item, left: (x / STAGE) * 100, top: (y / STAGE) * 100 };
+});
+/**
+ * An item at 9 or 3 o'clock, where the ring is widest: on phones both sides
+ * then keep a column for its label, and the ring steps down to its second
+ * size (plan step 9, tier B). Decided by the content, never while the page is open.
+ */
+const sideLabels = items.some((item) => item.hour === 9 || item.hour === 3);
+
+// The slogan breaks after its comma on narrow screens.
+const [sloganA, sloganB] = copy.slogan.split(/(?<=,)\s/);
+
+// The turn's wipe: masks over the whole stage, their soft edge moved by the scene.
+const FAR = { x: -STAGE, y: -STAGE, width: 3 * STAGE, height: 3 * STAGE };
+const wipes = [
+  { view: 'side', from: 'white', to: 'black' },
+  { view: 'front', from: 'black', to: 'white' },
+] as const;
+---
+
+<section
+  class:list={['intro', `intro--${frame}`, sideLabels && 'intro--side-labels']}
+  data-intro-frame={id}
+  data-intro-live={live ? '' : undefined}
+  data-intro-figure={figure}
+  data-intro-homepage={homepage ? '' : undefined}
+  aria-labelledby={`${id}-heading`}
+>
+  <style is:inline set:html={rules.join('\n')}></style>
+
+  <div class="intro__stage">
+    <svg class="intro__svg" viewBox={`0 0 ${STAGE} ${STAGE}`} aria-hidden="true" focusable="false">
+      <defs>
+        {
+          ground && (
+            <clipPath id={`${id}-above-line`}>
+              <rect x={-STAGE} y={-STAGE} width={3 * STAGE} height={STAGE + lineY} data-intro-clip />
+            </clipPath>
+          )
+        }
+        {
+          live &&
+            !dots &&
+            wipes.map((wipe) => (
+              <>
+                <linearGradient id={`${id}-wipe-${wipe.view}`} gradientUnits="userSpaceOnUse" x1="0" x2="1" y1="0" y2="0" data-intro-wipe>
+                  <stop offset="0" stop-color={wipe.from} />
+                  <stop offset="1" stop-color={wipe.to} />
+                </linearGradient>
+                <mask id={`${id}-mask-${wipe.view}`} maskUnits="userSpaceOnUse" {...FAR}>
+                  <rect {...FAR} fill={`url(#${id}-wipe-${wipe.view})`} />
+                </mask>
+              </>
+            ))
+        }
+      </defs>
+
+      <g clip-path={ground ? `url(#${id}-above-line)` : undefined}>
+        <circle class="intro__ring" cx={RING.cx} cy={RING.cy} r={RING.r} />
+        {
+          side && !dots && (
+            <g data-intro-mask="side" data-mask-id={`${id}-mask-side`}>
+              <g class="intro__side" transform={place(openingCamera)} data-intro-view="side">
+                <g data-character="female">
+                  <Character character="female" view="side" />
+                </g>
+              </g>
+            </g>
+          )
+        }
+        {
+          front && !dots && (
+            <g data-intro-mask="front" data-mask-id={`${id}-mask-front`}>
+              <g class="intro__front" transform={place(frontCamera)} data-intro-view="front">
+                <Character character="female" view="front" />
+              </g>
+            </g>
+          )
+        }
+      </g>
+      {ground && <line class="intro__line" x1={RING.cx - LINE_HALF} x2={RING.cx + LINE_HALF} y1={lineY} y2={lineY} data-intro-line />}
+    </svg>
+    {dots && <canvas class="intro__dots" aria-hidden="true" data-dot-figure />}
+
+    {
+      front && (
+        <nav class="intro__menu ui" aria-label={ritual[lang].menuLabel}>
+          <ul class="intro__items" role="list">
+            {items.map((item) => (
+              <li
+                class:list={['intro__item', `intro__item--${item.side}`]}
+                style={`left:${item.left.toFixed(2)}%;top:${item.top.toFixed(2)}%`}
+                data-intro-item
+              >
+                <span class="intro__dot" aria-hidden="true" />
+                <InstagramLink class="intro__link" />
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )
+    }
+  </div>
+
+  <div class="intro__text">
+    <div class="intro__main">
+      {frame === 'opening' && <p class="intro__title">{copy.title}</p>}
+      {
+        live && (
+          /* One sentence at a time, faded in and out by the player; screen
+             readers get the title and the cues as text below instead. */
+          <p class="intro__sentences" aria-hidden="true">
+            <span class="intro__title" data-sentence>
+              {copy.title}
+            </span>
+            {cues.map((cue) => (
+              <span class="intro__cue" data-sentence>
+                {cue}
+              </span>
+            ))}
+          </p>
+        )
+      }
+      <h1 class:list={['intro__slogan', dots && 'intro__slogan--motto']} id={`${id}-heading`} data-intro-slogan>
+        {
+          dots ? (
+            <>
+              <span>
+                <span class="intro__quote" aria-hidden="true">
+                  {copy.quotes[0]}
+                </span>
+                {sloganA}
+              </span>{' '}
+              <span>
+                {sloganB}
+                <span class="intro__quote" aria-hidden="true">
+                  {copy.quotes[1]}
+                </span>
+              </span>
+            </>
+          ) : (
+            <>
+              <span>{sloganA}</span> <span>{sloganB}</span>
+            </>
+          )
+        }
+      </h1>
+    </div>
+    <button class="intro__action intro__replay" type="button" aria-describedby={`${id}-replay-hint`} data-intro-replay>
+      {copy.replay}
+    </button>
+    <span id={`${id}-replay-hint`} hidden>
+      {copy.replayLabel}
+    </span>
+    {
+      live && (
+        <div class="visually-hidden">
+          <p>{copy.title}</p>
+          <ol>
+            {cues.map((cue) => (
+              <li>{cue}</li>
+            ))}
+          </ol>
+        </div>
+      )
+    }
+  </div>
+
+  <div class="intro__controls ui">
+    {
+      side && (
+        <button class="intro__action" type="button" data-intro-stop>
+          {copy.stop}
+        </button>
+      )
+    }
+  </div>
+</section>
+
+<style>
+  /* Centred, top to bottom: the ring with the figure, the text, the controls.
+     The ring is as large as the screen allows: at most the height left once
+     the header (about 10.3rem on desktop, measured), the text, the controls
+     and the gaps are counted (22rem in all), so everything above the footer
+     fits a 768px-tall laptop screen; at most the width left beside room for
+     the labels; and at most 36rem. Phones held upright: see below. */
+  .intro {
+    --ring-desktop: min(calc(100svh - 22rem), calc(100vw - 2 * var(--gutter) - 2 * 6rem), 36rem);
+    --ring: var(--ring-desktop);
+
+    display: grid;
+    justify-items: center;
+    gap: var(--space-3);
+    padding-block: var(--space-3) var(--space-4);
+    text-align: center;
+  }
+
+  /* Phones held upright (plan step 9, the approved phone layout): the same
+     stack, with the ring as large as the phone allows instead of the desktop
+     sizes, which keep 6rem a side for labels and left it about 164px wide.
+     - Tier A, no item at 9 or 3 o'clock (today, Instagram at 5): the smallest
+       of 82% of the content width, the height left above the footer, and
+       300px. Labels at 11, 1, 5 and 7 o'clock reach out into the room beside
+       the ring.
+     - Tier B, an item at 9 or 3: the content width less a 72px label column
+       on each side, both kept so the ring stays centred.
+     - Never below 184px: on short screens the ring shrinks first, then the
+       page scrolls.
+     The height left: 100svh (so the browser's bars can't push the ring's
+     items off screen) less the header (107px measured at 375px wide), the
+     intro's top padding and its two gaps (3rem), the text slot (6rem) and the
+     controls (2.75rem): 18.5rem in all, so everything above the footer fits
+     375 × 548. Never smaller than the desktop sizes would be (wider phones
+     and small tablets in portrait keep those). */
+  @media (max-width: 47.99rem) and (orientation: portrait) {
+    .intro {
+      --ring-phone: max(184px, min(0.82 * (100vw - 2 * var(--gutter)), calc(100svh - 18.5rem), 300px));
+      --ring: max(var(--ring-desktop), var(--ring-phone));
+    }
+
+    .intro--side-labels {
+      --ring-phone: max(184px, min(calc(100vw - 2 * var(--gutter) - 2 * 72px), calc(100svh - 18.5rem)));
+    }
+
+    /* A fixed text slot: room for two lines of the slogan and Replay
+       under it (94px measured, with the coming-soon line it replaced), so
+       the controls never move when the text changes. Kept inside the page's gutter. (Under
+       .intro: the base rule comes later.) */
+    .intro .intro__text {
+      min-height: 6rem;
+      padding-inline: var(--gutter);
+    }
+
+    /* The slogan always breaks after its comma here ("Daha iyi duruş, /
+       daha sağlıklı yaşam."), as approved, not only when it runs out of
+       room: on one line it reached within 10px of the screen's edges. */
+    .intro .intro__slogan > span {
+      display: block;
+    }
+  }
+
+  /* Phones held sideways (plan step 9, the approved side column): below
+     32rem of height the stack would leave the ring a few pixels tall, so the
+     text and the controls move into a column beside it, centred on it, as on
+     desktop otherwise. Up to 60rem wide (the widest phones are about 58rem),
+     so tablets and desktops keep their layout.
+     - The ring: as tall as the screen allows under the header, its top
+       padding (1rem) and 0.5rem below it, so the ring and its labels stay on
+       screen (svh, for the browser's bars); and narrow enough to leave the
+       column at least 12rem, the gap, and with an item at 9 or 3 o'clock a
+       72px label column on each side.
+     - --header mirrors SiteHeader.astro: its padding (2.5rem, 4rem from
+       48rem), the lockup at clamp(10.5rem, 6.5rem + 11vw, 16rem) wide and
+       271.22 × 104 (both languages), and the 3px rule. Change both together.
+     - The text slot keeps its fixed 6rem and the slogan breaks after its
+       comma, as on phones held upright, so the controls never move.
+     Notches: the viewport meta has no viewport-fit=cover, so browsers keep
+     the page clear of them themselves. */
+  @media (orientation: landscape) and (max-height: 32rem) and (max-width: 60rem) {
+    .intro {
+      --header: calc(2.5rem + 3px + clamp(10.5rem, 6.5rem + 11vw, 16rem) * 104 / 271.22);
+      --label-room: 0px;
+      --ring: max(
+        0px,
+        min(calc(100svh - var(--header) - 1.5rem), calc(100vw - 2 * var(--gutter) - 2 * var(--label-room) - var(--space-5) - 12rem))
+      );
+
+      grid-template-columns: auto minmax(0, 20rem);
+      grid-template-rows: 1fr auto auto 1fr;
+      justify-content: center;
+      column-gap: var(--space-5);
+      padding-inline: var(--gutter);
+    }
+
+    .intro--side-labels {
+      --label-room: 72px;
+    }
+
+    .intro__stage {
+      grid-row: 1 / -1;
+      margin-inline: var(--label-room);
+    }
+
+    .intro .intro__text {
+      grid-row: 2;
+      grid-column: 2;
+      min-height: 6rem;
+    }
+
+    .intro__controls {
+      grid-row: 3;
+      grid-column: 2;
+    }
+
+    .intro .intro__slogan > span {
+      display: block;
+    }
+  }
+
+  @media (orientation: landscape) and (max-height: 32rem) and (min-width: 48rem) and (max-width: 60rem) {
+    .intro {
+      --header: calc(4rem + 3px + clamp(10.5rem, 6.5rem + 11vw, 16rem) * 104 / 271.22);
+    }
+  }
+
+  .intro__stage {
+    position: relative;
+    width: var(--ring);
+    aspect-ratio: 1;
+  }
+
+  .intro__svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+
+  /* The dot figure over the stage, in its units (./dotScene.ts places it):
+     transparent until first drawn, then a short fade in. */
+  .intro__dots {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 400ms cubic-bezier(0.45, 0, 0.25, 1);
+    pointer-events: none;
+  }
+
+  .intro__dots[data-drawn] {
+    opacity: 1;
+  }
+
+  .intro__ring,
+  .intro__line {
+    fill: none;
+    stroke: var(--color-rule);
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    vector-effect: non-scaling-stroke;
+  }
+
+  /* The dots' scene opens the ring from the stage's centre (./dotScene.ts). */
+  .intro__ring {
+    transform-box: view-box;
+    transform-origin: 50% 50%;
+  }
+
+  /* ---------- The ring's items ---------- */
+
+  .intro__items {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  /* Each item's dot sits on the ring at its position; the label is outside
+     the ring, after the dot on the right-hand side, before it on the left.
+     The link's padding covers the dot, so the dot is part of what you tap. */
+  .intro__item {
+    position: absolute;
+    translate: -0.25rem -50%;
+  }
+
+  .intro__item--start {
+    translate: calc(-100% + 0.25rem) -50%;
+  }
+
+  .intro__dot {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 0.5rem;
+    height: 0.5rem;
+    margin-top: -0.25rem;
+    border-radius: 50%;
+    background: var(--color-text);
+    box-shadow: 0 0 0 3px var(--color-bg);
+    opacity: var(--dot, 1);
+    scale: var(--dot, 1);
+    pointer-events: none;
+  }
+
+  .intro__item--start .intro__dot {
+    right: 0;
+    left: auto;
+  }
+
+  .intro :global(.intro__link) {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap-min);
+    padding-inline-start: calc(0.5rem + var(--space-2));
+    color: var(--color-text);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .intro__item--start :global(.intro__link) {
+    padding-inline: 0 calc(0.5rem + var(--space-2));
+  }
+
+  .intro :global(.intro__link:hover) {
+    text-decoration-line: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.3em;
+  }
+
+  /* ---------- Text ---------- */
+
+  /* Room for two lines of a cue, or the slogan and Replay, so
+     nothing below moves when the text changes. The title, the cues and the
+     slogan share one cell. */
+  .intro__text {
+    display: grid;
+    align-content: start;
+    justify-items: center;
+    gap: var(--space-2);
+    min-height: 5rem;
+    /* Wide enough for the slogan on one line on wide screens. */
+    max-width: 48rem;
+  }
+
+  .intro__main {
+    display: grid;
+    grid-template-areas: 'main';
+    justify-items: center;
+  }
+
+  .intro__main > * {
+    grid-area: main;
+  }
+
+  /* The title and every cue share one size (owner, 2026-10-26). */
+  .intro__title,
+  .intro__cue,
+  .intro__slogan {
+    margin: 0;
+    font-family: var(--font-serif);
+    font-size: clamp(1.75rem, 1.375rem + 1.667vw, 2.75rem);
+    font-weight: 300;
+    line-height: 1.15;
+    letter-spacing: var(--tracking-heading);
+    text-wrap: balance;
+  }
+
+  /* The motto (the dot intro, owner 2026-10-26): the brand's lasting
+     statement, not another instruction, so it is set apart from the cues
+     at the same size: italic, between quotation marks in the accent colour. */
+  .intro__slogan--motto {
+    font-style: italic;
+  }
+
+  .intro__quote {
+    color: var(--color-accent);
+  }
+
+  /* The live sentences share one cell; the player sets each one's opacity. */
+  .intro__sentences {
+    display: grid;
+    grid-template-areas: 'sentence';
+    align-items: start;
+    margin: 0;
+  }
+
+  .intro__sentences > span {
+    grid-area: sentence;
+    opacity: 0;
+  }
+
+  /* With the dots, the title and the cues sit close under the line (owner's
+     review, 2026-10-26): the line is 7.68% of the stage's height above its
+     bottom (DOT_FLOOR, ./dotScene.ts), so they are drawn that much higher,
+     about the stack's 1rem gap below it. Drawn only: the text slot and the
+     controls keep their places, and the motto stays where it is. Nothing
+     shows below the line in the intro, so they cover nothing. In the
+     stacked layouts only: the side column is beside the ring. */
+  @media not ((orientation: landscape) and (max-height: 32rem) and (max-width: 60rem)) {
+    .intro[data-intro-figure='dots'] .intro__sentences {
+      translate: 0 calc(-0.0768 * var(--ring));
+    }
+  }
+
+  /* Narrow screens: the slogan breaks after its comma. */
+  @media (max-width: 47.99rem) {
+    .intro__slogan > span {
+      display: inline-block;
+    }
+  }
+
+  /* ---------- Controls ---------- */
+
+  /* The stop control, below the text; its place is kept once it is hidden,
+     so nothing moves. */
+  .intro__controls {
+    display: grid;
+    grid-template-areas: 'action';
+    justify-items: center;
+  }
+
+  .intro__controls > .intro__action {
+    grid-area: action;
+  }
+
+  .intro__action {
+    min-height: var(--tap-min);
+    padding-inline: var(--space-3);
+    border: 0;
+    background: none;
+    color: var(--color-muted);
+    font: inherit;
+    font-size: var(--text-small);
+    cursor: pointer;
+  }
+
+  .intro__action:hover {
+    text-decoration-line: underline;
+    text-underline-offset: 0.3em;
+  }
+
+  /* Replay, in the coming-soon line's place (owner, 2026-10-26): its label
+     sits exactly where that line's text was, and the margins give back what
+     the tap target adds, so the text slot and the controls keep their sizes.
+     Set as the stop control is (.ui on its wrapper), at that line's line height. */
+  .intro__replay {
+    margin-block: calc((var(--text-small) * var(--leading-body) - var(--tap-min)) / 2);
+    font-family: var(--font-sans);
+    font-weight: 500;
+  }
+
+  /* ---------- Before the scene shows them ---------- */
+
+  /* The opening: the slogan is transparent (it stays the page's heading for
+     screen readers). */
+  .intro--opening .intro__slogan,
+  .intro--live .intro__slogan {
+    opacity: 0;
+  }
+
+  /* Live: the front view, the menu and Replay wait for the scene. */
+  .intro--live [data-intro-view='front'] {
+    visibility: hidden;
+  }
+
+  .intro--live :global(.intro__link),
+  .intro--opening [data-intro-replay],
+  .intro--live [data-intro-replay] {
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  .intro--live .intro__item {
+    --dot: 0;
+  }
+
+  /* Live with the dots: the scene opens from a single dot, so the ring and
+     the line wait for it (the menu's dot too, above). */
+  .intro--live[data-intro-figure='dots'] .intro__ring {
+    scale: 0;
+  }
+
+  .intro--live[data-intro-figure='dots'] .intro__line {
+    visibility: hidden;
+  }
+
+  /* ---------- On the homepage ---------- */
+
+  /* data-intro on <html> (BaseLayout's `ritual` script, then ./homepage.ts):
+     `starting` and `playing` are the intro, from its first frame (the rules
+     above, then the scene's inline styles). Any other state is the still
+     menu, the scene's end, so it shows from the first paint: `rest` (played
+     in this tab already, ended or stopped), and none (reduced motion, or no
+     scripting, which also leaves no figure: it is drawn by the script). */
+  :global(:root:not([data-intro='starting'], [data-intro='playing'])) [data-intro-homepage] .intro__slogan {
+    opacity: 1;
+  }
+
+  :global(:root:not([data-intro='starting'], [data-intro='playing'])) [data-intro-homepage] :global(.intro__link),
+  :global(:root:not([data-intro='starting'], [data-intro='playing'])) [data-intro-homepage] [data-intro-replay] {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  :global(:root:not([data-intro='starting'], [data-intro='playing'])) [data-intro-homepage] .intro__item {
+    --dot: 1;
+  }
+
+  :global(:root:not([data-intro='starting'], [data-intro='playing'])) [data-intro-homepage] .intro__ring {
+    scale: 1;
+  }
+
+  /* The line stays at her feet, her ground; the ring is not shown below it. */
+  :global(:root:not([data-intro='starting'], [data-intro='playing'])) [data-intro-homepage] [data-intro-stop] {
+    visibility: hidden;
+  }
+
+  :global(:root:not([data-intro='starting'], [data-intro='playing'])) [data-intro-homepage] [data-intro-line] {
+    visibility: visible;
+  }
+
+  /* The stop control waits for the script that makes it work. */
+  :global(:root[data-intro='starting']) [data-intro-homepage] [data-intro-stop] {
+    visibility: hidden;
+  }
+
+  /* No controls with reduced motion or without scripting (the approved
+     reduced-motion state has no Replay). Not while it plays: reduced motion
+     switched on then stops it (./homepage.ts), and the stop control keeps
+     focus until that moves it on. */
+  :global(:root:not([data-intro])) [data-intro-homepage] .intro__action {
+    display: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :global(:root:not([data-intro='playing'])) [data-intro-homepage] .intro__action {
+      display: none;
+    }
+  }
+
+  /* The scene fades the links and controls itself (inline). With reduced
+     motion, global.css gives every element a 0.01ms transition, which would
+     leave a link it has just shown hidden, so not focusable, for a moment:
+     the stop control could not hand focus to it. */
+  [data-intro-homepage] :global(.intro__link),
+  [data-intro-homepage] .intro__action {
+    transition: none;
+  }
+
+  /* Replay: the figure and the text fade out, then in again on the first frame. */
+  [data-intro-homepage] :is(.intro__stage, .intro__text) {
+    transition: opacity 200ms cubic-bezier(0.45, 0, 0.25, 1);
+  }
+
+  [data-intro-homepage][data-fading] :is(.intro__stage, .intro__text) {
+    opacity: 0;
+  }
+</style>
