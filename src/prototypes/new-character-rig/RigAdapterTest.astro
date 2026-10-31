@@ -1,0 +1,352 @@
+---
+// Dev-only rig-adapter test (2026-10-24), at /dev/new-character-rig/ and
+// /en/dev/new-character-rig/, rendered by the dev routes in
+// src/pages/dev/[prototype].astro and src/pages/en/dev/[prototype].astro.
+// The new female character's side view, cut into the approved intro rig's
+// joints by ./adapter.ts (pieces of the unchanged artwork, nothing added),
+// played by the approved intro player (components/ritual/intro/, unchanged)
+// beside the old character in the same rig, which the player moves at the
+// same time. Not connected to / or /en/, the homepage intro or its preview.
+import Character from '../../components/ritual/Character.astro';
+import { DURATION } from '../../components/ritual/intro/timeline';
+import { homeIntro } from '../../config/home-intro';
+import { ritual } from '../../config/ritual';
+import type { Lang } from '../../i18n/ui';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { adaptedSide } from './adapter';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const translations = { tr: '/dev/new-character-rig/', en: '/en/dev/new-character-rig/' };
+
+/** The whole figure, and the regions the magnified view can show (viewBox units). */
+const WHOLE = '82 26 136 422';
+const REGIONS = {
+  neck: '108 26 84 100',
+  shoulder: '108 92 84 84',
+  torso: '104 100 92 130',
+  pelvis: '104 180 92 104',
+  whole: WHOLE,
+} as const;
+
+/** Still frames: the slouch, the back straightening, the neck and head, the chin tuck, the top of the breath, the end. */
+const stills = [0, 2300, 3300, 4300, 5200, 6100, 7200, 8200, 11800, 13900, DURATION];
+
+const sentences = [homeIntro[lang].title, ...ritual[lang].cues];
+
+const t = {
+  tr: {
+    title: 'Yeni karakter: iskelet uyarlama testi',
+    intro:
+      'Yeni kadın karakterin yan görünümü, onaylı giriş iskeletinin eklemlerine yerleştirildi ve onaylı 16 saniyelik hareketi, değiştirilmemiş oynatıcıyla oynatıyor. Her parça, onaylı çizimin değiştirilmemiş hâlinin bir bölgesi: omurga segmenti başına yatay bir şerit (iskeletteki gibi altındakinin 4 birim üzerine uzanır), boyun kesiminin üstünde baş, ayrı bir parça olarak kol ve el. Eklem yükseklikleri iskeletin kendi değerleri; yatay konumları aynı kurallarla yeni figür üzerinde ölçüldü. Gizli alanlar çizilmedi: bir parça yerinden oynayınca altında kalan yer boş görünür.',
+    scope: 'Yalnızca bu test sayfası: ana sayfa, giriş, önizlemesi, oynatıcı ve onaylı çizim dosyaları değişmedi.',
+    play: 'Oynat',
+    pause: 'Duraklat',
+    replay: 'Baştan',
+    speed: 'Hız',
+    time: 'Zaman',
+    stills: 'Kareler',
+    debug: 'Kesim çizgileri ve eklem noktaları',
+    gaps: 'Boşlukları vurgula',
+    region: 'Büyütülen bölge',
+    regions: { neck: 'Boyun ve baş', shoulder: 'Omuz ve kol', torso: 'Gövde', pelvis: 'Leğen kemiği ve el', whole: 'Tüm figür' },
+    old: 'Onaylı iskelet, eski karakter (karşılaştırma)',
+    adapted: 'Yeni karakter, uyarlanmış',
+    magnified: 'Yeni karakter, büyütülmüş',
+    look: 'Bakılacaklar',
+    lookItems: [
+      'Kol omzu izler ama dikey asılı kalır: gövdeye göre dönünce arkasında (sırt, kalça, uyluk) çizimde olmayan alan boş kalır.',
+      'Şerit sınırlarında (her segmentin alt kenarı) dış çizgide küçük basamaklar, askı, yaka ve bel çizgisinde kırılmalar.',
+      'Boyun kesimi (çene çizgisinin altı) ve leğen kemiği şeridinin alt kenarı (uyluk üzerinde, y 262).',
+      'Nefeste göğüs öne çıkar, kol yerinde kalır.',
+    ],
+  },
+  en: {
+    title: 'New character: rig adapter test',
+    intro:
+      'The new female character’s side view, placed in the approved intro rig’s joints and playing the approved 16-second movement through the unchanged player. Each piece is a region of the unchanged approved artwork: a horizontal band per spinal segment (reaching 4 units under the one below, as in the rig), the head above the neck’s cut, and the arm and hand as a piece of their own. The joints’ heights are the rig’s own; their horizontal positions were measured on the new figure by the same rules. Nothing hidden was drawn: where a piece moves, what lay under it is simply empty.',
+    scope: 'This test page only: the homepage, the intro, its preview, the player and the approved artwork files are unchanged.',
+    play: 'Play',
+    pause: 'Pause',
+    replay: 'Restart',
+    speed: 'Speed',
+    time: 'Time',
+    stills: 'Frames',
+    debug: 'Cut lines and pivots',
+    gaps: 'Highlight gaps',
+    region: 'Magnified region',
+    regions: { neck: 'Neck and head', shoulder: 'Shoulder and arm', torso: 'Torso', pelvis: 'Pelvis and hand', whole: 'Whole figure' },
+    old: 'Approved rig, old character (comparison)',
+    adapted: 'New character, adapted',
+    magnified: 'New character, magnified',
+    look: 'What to look at',
+    lookItems: [
+      'The arm follows the shoulder but keeps hanging straight: as it turns against the torso, the area behind it (back, hip, thigh), which the artwork doesn’t have, stays empty.',
+      'Small steps in the outline at the bands’ edges (each segment’s lower edge), and breaks in the strap, neckline and waist lines.',
+      'The neck’s cut (under the jaw line) and the pelvis band’s lower edge (across the thigh, y 262).',
+      'In the breath the chest comes forward and the arm stays put.',
+    ],
+  },
+}[lang];
+---
+
+<BaseLayout title={`${t.title} (dev)`} translations={translations} lockup>
+  <div class="nr container" data-dev-only data-nr-root>
+    <h1 class="nr__title">{t.title}</h1>
+    <p class="nr__intro">{t.intro}</p>
+    <p class="nr__intro nr__note">{t.scope}</p>
+
+    <div class="nr__controls ui">
+      <button type="button" class="nr__button" data-nr-play data-pause={t.pause}>{t.play}</button>
+      <button type="button" class="nr__button" data-nr-replay>{t.replay}</button>
+      <label class="nr__field">
+        {t.speed}
+        <select data-nr-speed>
+          <option value="1">1×</option>
+          <option value="0.5">0.5×</option>
+          <option value="0.25">0.25×</option>
+        </select>
+      </label>
+      <label class="nr__field nr__field--time">
+        {t.time}
+        <input type="range" min="0" max={DURATION} step="10" value="0" data-nr-time />
+        <output data-nr-readout>0 ms</output>
+      </label>
+    </div>
+    <div class="nr__controls ui">
+      <span>{t.stills}:</span>
+      {stills.map((ms) => <button type="button" class="nr__button nr__button--small" data-nr-still={ms}>{ms}</button>)}
+    </div>
+    <div class="nr__controls ui">
+      <label class="nr__field"><input type="checkbox" data-nr-debug /> {t.debug}</label>
+      <label class="nr__field"><input type="checkbox" data-nr-gaps /> {t.gaps}</label>
+      <label class="nr__field">
+        {t.region}
+        <select data-nr-region>
+          {Object.entries(REGIONS).map(([key, box]) => <option value={box}>{t.regions[key as keyof typeof REGIONS]}</option>)}
+        </select>
+      </label>
+    </div>
+
+    <div class="nr__views">
+      <figure class="nr__stage">
+        <svg viewBox={WHOLE} role="img" aria-label={t.old}>
+          <g data-character="female"><Character character="female" view="side" /></g>
+        </svg>
+        <figcaption class="ui">{t.old}</figcaption>
+      </figure>
+      <figure class="nr__stage">
+        <svg viewBox={WHOLE} role="img" aria-label={t.adapted}>
+          <g class="nr__art" data-character="female" set:html={adaptedSide('nr-a')} />
+        </svg>
+        <figcaption class="ui">{t.adapted}</figcaption>
+      </figure>
+      <figure class="nr__stage nr__stage--wide">
+        <svg viewBox={REGIONS.neck} role="img" aria-label={t.magnified} data-nr-zoom>
+          <g class="nr__art" data-character="female" set:html={adaptedSide('nr-z')} />
+        </svg>
+        <figcaption class="ui">{t.magnified}</figcaption>
+      </figure>
+    </div>
+
+    <p class="nr__cue" aria-live="off">
+      {sentences.map((text) => <span data-sentence>{text}</span>)}
+    </p>
+
+    <h2 class="nr__h2 ui">{t.look}</h2>
+    <ul class="nr__intro nr__note">
+      {t.lookItems.map((item) => <li>{item}</li>)}
+    </ul>
+  </div>
+</BaseLayout>
+
+<script>
+  import { createPlayer } from '../../components/ritual/intro/controller';
+
+  const root = document.querySelector<HTMLElement>('[data-nr-root]')!;
+  const q = <T extends Element>(selector: string) => root.querySelector<T>(selector)!;
+  const player = createPlayer(root);
+  const play = q<HTMLButtonElement>('[data-nr-play]');
+  const time = q<HTMLInputElement>('[data-nr-time]');
+  const readout = q<HTMLOutputElement>('[data-nr-readout]');
+  const labels = { play: play.textContent!, pause: play.dataset.pause! };
+
+  player.onUpdate = (t) => {
+    time.value = String(Math.round(t));
+    readout.value = `${Math.round(t)} ms`;
+    play.textContent = player.playing ? labels.pause : labels.play;
+  };
+  play.addEventListener('click', () => (player.playing ? player.pause() : player.play()));
+  q<HTMLButtonElement>('[data-nr-replay]').addEventListener('click', () => player.replay());
+  q<HTMLSelectElement>('[data-nr-speed]').addEventListener('change', (event) => (player.rate = Number((event.target as HTMLSelectElement).value)));
+  time.addEventListener('input', () => {
+    player.pause();
+    player.seek(Number(time.value));
+  });
+  for (const button of root.querySelectorAll<HTMLButtonElement>('[data-nr-still]')) {
+    button.addEventListener('click', () => {
+      player.pause();
+      player.seek(Number(button.dataset.nrStill));
+    });
+  }
+  q<HTMLInputElement>('[data-nr-debug]').addEventListener('change', (event) => root.toggleAttribute('data-debug', (event.target as HTMLInputElement).checked));
+  q<HTMLInputElement>('[data-nr-gaps]').addEventListener('change', (event) => root.toggleAttribute('data-gaps', (event.target as HTMLInputElement).checked));
+  q<HTMLSelectElement>('[data-nr-region]').addEventListener('change', (event) => {
+    const box = (event.target as HTMLSelectElement).value;
+    const [, , w, h] = box.split(' ').map(Number);
+    const svg = q<SVGSVGElement>('[data-nr-zoom]');
+    svg.setAttribute('viewBox', box);
+    svg.style.aspectRatio = `${w} / ${h}`;
+  });
+
+  // The slouched first frame; nothing plays until asked.
+  player.seek(0);
+</script>
+
+<style>
+  .nr {
+    display: grid;
+    gap: var(--space-3);
+    padding-block: var(--space-4) var(--space-6);
+  }
+
+  .nr__title {
+    margin: 0;
+    font-size: var(--text-h2);
+    font-weight: 300;
+  }
+
+  .nr__intro {
+    max-width: 44rem;
+    margin: 0;
+  }
+
+  .nr__note {
+    font-size: var(--text-small);
+    color: var(--color-muted);
+  }
+
+  .nr__h2 {
+    margin: var(--space-3) 0 0;
+  }
+
+  .nr__controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-3);
+  }
+
+  .nr__field {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .nr__field--time input {
+    width: min(20rem, 60vw);
+  }
+
+  .nr__field--time output {
+    min-width: 5.5em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .nr__button,
+  .nr__controls select {
+    min-height: 2.25rem;
+    padding-inline: var(--space-3);
+    border: 1px solid var(--color-rule);
+    border-radius: 999px;
+    background: var(--color-bg);
+    color: var(--color-text);
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .nr__button--small {
+    min-height: 2rem;
+    padding-inline: var(--space-2);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .nr__views {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 2fr);
+    gap: var(--space-3);
+    align-items: start;
+  }
+
+  .nr__stage {
+    display: grid;
+    gap: var(--space-1);
+    min-width: 0;
+    margin: 0;
+    text-align: center;
+    font-size: var(--text-small);
+  }
+
+  .nr__stage svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 136 / 422;
+  }
+
+  .nr__stage--wide svg {
+    aspect-ratio: 84 / 100;
+  }
+
+  .nr[data-gaps] .nr__stage svg {
+    background: var(--color-accent);
+  }
+
+  .nr__cue {
+    display: grid;
+    margin: 0;
+    font-size: var(--text-h3, 1.5rem);
+    font-weight: 300;
+    text-align: center;
+  }
+
+  .nr__cue span {
+    grid-area: 1 / 1;
+    opacity: 0;
+  }
+
+  /* The rig's joints turn about their pivots in viewBox units, as in ../../components/ritual/Character.astro. */
+  .nr :global(.j) {
+    transform-box: view-box;
+  }
+
+  .nr :global(.nr-debug) {
+    display: none;
+    fill: none;
+    stroke: var(--color-accent);
+    stroke-width: 0.35;
+    stroke-dasharray: 1.2 0.8;
+  }
+
+  .nr :global(.nr-debug circle) {
+    fill: var(--color-bg);
+    stroke: var(--color-text);
+    stroke-dasharray: none;
+  }
+
+  .nr[data-debug] :global(.nr-debug) {
+    display: inline;
+  }
+
+  @media (max-width: 40rem) {
+    .nr__views {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+
+    .nr__stage--wide {
+      grid-column: 1 / -1;
+    }
+  }
+</style>

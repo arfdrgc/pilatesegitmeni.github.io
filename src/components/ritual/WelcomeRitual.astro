@@ -1,0 +1,406 @@
+---
+// The welcome ritual in the coming-soon pages' hero (/ and /en/): the approved
+// intro (./IntroRitual.astro, live), the compact circular menu revealed when it
+// completes, Replay, and the stop control while it moves. The default slot (the
+// coming-soon label and title) goes below the figures.
+//
+// States, on <html> as data-intro (set before the first paint by BaseLayout's
+// `ritual` script, then by the script below):
+// - `starting`: the first visit in this tab; the slouched first frame until
+//   the player starts. Menu hidden.
+// - `playing`: the intro is moving. Menu hidden; the stop control shown.
+// - `rest`: completed (in this tab already, or now). The neutral pose, the
+//   last cue and the menu.
+// - none: the approved reduced-motion version (the neutral pose, the title and
+//   all four cues) with the menu: reduced motion, no scripting, or the stop
+//   control used.
+// Replay and the stop control need the script (data-welcome="ready") and are
+// never shown with reduced motion. There is no skip button and no keyboard
+// shortcut: the stop control is the only way to end the intro early.
+import InstagramLink from '../InstagramLink.astro';
+import LanguageLink from '../LanguageLink.astro';
+import { ritual } from '../../config/ritual';
+import type { Lang } from '../../i18n/ui';
+import type { Translations } from '../../i18n/utils';
+import IntroRitual from './IntroRitual.astro';
+
+interface Props {
+  lang: Lang;
+  translations: Translations;
+}
+
+const { lang, translations } = Astro.props;
+const r = ritual[lang];
+const replayHint = `welcome-replay-hint-${lang}`;
+---
+
+<IntroRitual lang={lang} variant="live" id="welcome-ritual" hero>
+  <div class="welcome__menu" data-welcome-menu>
+    <nav class="orbit ui" aria-label={r.menuLabel}>
+      <svg class="orbit__ring" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+        <circle cx="50" cy="50" r="49.5" pathLength="1" />
+      </svg>
+      <ul class="orbit__list" role="list">
+        <li class="orbit__item orbit__item--start"><InstagramLink class="orbit__link" /></li>
+        <li class="orbit__item orbit__item--end"><LanguageLink class="orbit__link" lang={lang} translations={translations} /></li>
+      </ul>
+    </nav>
+    <div class="welcome__actions ui">
+      <button class="welcome__action welcome__replay" type="button" aria-describedby={replayHint} data-welcome-replay>
+        {r.replay}
+      </button>
+      <span id={replayHint} hidden>{r.replayLabel}</span>
+      <button class="welcome__action welcome__stop" type="button" data-welcome-stop>{r.stop}</button>
+    </div>
+  </div>
+  <div class="welcome__soon">
+    <slot />
+  </div>
+</IntroRitual>
+
+<script>
+  import { createPlayer, type Player } from './intro/controller';
+  import { DURATION } from './intro/timeline';
+
+  // The breath has ended here (./intro/timeline.ts: the out-breath ends at
+  // 15 600 ms) and the figures are still until DURATION: the menu is revealed.
+  // On the player's own clock, which only advances on drawn frames, so a
+  // hidden tab never reveals it early.
+  const REVEAL_AT = 15600;
+
+  const html = document.documentElement;
+  const root = document.querySelector<HTMLElement>('[data-ritual-live]');
+  const menu = document.querySelector<HTMLElement>('[data-welcome-menu]');
+
+  if (root && menu) {
+    const stop = menu.querySelector<HTMLButtonElement>('[data-welcome-stop]')!;
+    const replay = menu.querySelector<HTMLButtonElement>('[data-welcome-replay]')!;
+    const firstLink = menu.querySelector<HTMLAnchorElement>('nav a')!;
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+
+    let player: Player | undefined;
+    try {
+      player = createPlayer(root);
+    } catch {
+      // No player: the completed state instead of a slouch that never moves.
+      if (html.dataset.intro === 'starting') html.dataset.intro = 'rest';
+    }
+
+    if (player) {
+      const p = player;
+      let replaying = false;
+      // When the menu last appeared. Replay sits where the stop control was,
+      // so a second click or tap meant for the stop control (a double click,
+      // or a late one as the intro completes) would otherwise restart it.
+      let shownAt = -Infinity;
+      const GUARD = 700;
+
+      // Completed: the menu is revealed (with its transitions) and, if focus
+      // was on the stop control, which is now hidden, it moves on.
+      const complete = () => {
+        shownAt = performance.now();
+        html.dataset.intro = 'rest';
+        if (document.activeElement === stop) (replaying ? replay : firstLink).focus();
+      };
+
+      // The stop control, and reduced motion switched on while it moves: every
+      // movement ends at once and the approved reduced-motion version is shown,
+      // the menu with it, without transitions.
+      const stopMotion = (moveFocus: boolean) => {
+        if (html.dataset.intro !== 'playing') return;
+        shownAt = performance.now();
+        html.dataset.reveal = 'instant';
+        delete html.dataset.intro;
+        p.pause();
+        p.seek(DURATION);
+        if (moveFocus || document.activeElement === stop) firstLink.focus();
+      };
+
+      // From the first frame: player.replay() for a Replay, player.play() for
+      // the first visit (the player starts at 0).
+      const play = (fromStart: () => void) => {
+        delete html.dataset.reveal;
+        html.dataset.intro = 'playing';
+        fromStart();
+      };
+
+      p.onUpdate = (time) => {
+        if (time >= REVEAL_AT && html.dataset.intro === 'playing') complete();
+      };
+
+      stop.addEventListener('click', () => stopMotion(true));
+      reduced.addEventListener('change', () => {
+        if (reduced.matches) stopMotion(false);
+      });
+
+      // Replay: a short fade of the frame, then the same intro from its first
+      // frame. Focus goes to the stop control, the one control shown while it
+      // plays.
+      replay.addEventListener('click', () => {
+        if (reduced.matches || html.dataset.intro === 'playing' || 'fading' in root.dataset) return;
+        if (performance.now() - shownAt < GUARD) return;
+        replaying = true;
+        root.dataset.fading = '';
+        setTimeout(() => {
+          play(() => p.replay());
+          delete root.dataset.fading;
+          stop.focus();
+        }, 200);
+      });
+
+      html.dataset.welcome = 'ready';
+      if (html.dataset.intro === 'starting' && !reduced.matches) play(() => p.play());
+    }
+  }
+</script>
+
+<style>
+  /* Phones: the menu and then the coming-soon text, below the cue and centred
+     like the rest of the ritual. */
+  .welcome__menu {
+    --ring: 5.75rem;
+    --ease: cubic-bezier(0.45, 0, 0.25, 1);
+
+    display: grid;
+    justify-items: center;
+    gap: var(--space-2);
+    width: max-content;
+    max-width: 100%;
+  }
+
+  .welcome__soon {
+    display: grid;
+    gap: var(--space-4);
+    justify-items: center;
+    width: 100%;
+    margin-top: var(--space-4);
+  }
+
+  /* Wider screens, and phones held sideways: the menu in the row below the
+     cue, aligned with it; the coming-soon text below the figures, across both
+     columns, aligned with the figures. */
+  @media (min-width: 48rem), (orientation: landscape) and (max-height: 32rem) {
+    .welcome__menu {
+      grid-row: 3;
+      grid-column: 2;
+      align-self: start;
+      justify-self: start;
+      margin-top: var(--space-4);
+    }
+
+    .welcome__soon {
+      grid-row: 4;
+      grid-column: 1 / -1;
+      justify-items: start;
+      margin-top: var(--space-5);
+    }
+  }
+
+  @media (min-width: 48rem) {
+    .welcome__soon {
+      gap: var(--space-5);
+    }
+  }
+
+  /* Phones held sideways: the text column is too narrow for the menu, so it
+     gets its own row below the figures, centred, above the coming-soon text. */
+  @media (orientation: landscape) and (max-height: 32rem) {
+    .welcome__menu {
+      grid-row: 4;
+      grid-column: 1 / -1;
+      justify-self: center;
+    }
+
+    .welcome__soon {
+      grid-row: 5;
+    }
+  }
+
+  /* ---------- The compact circular menu ---------- */
+
+  /* Two links on a small ring, at 9 and 3 o'clock: equal side columns keep
+     the ring centred whatever the labels' lengths. */
+  .orbit {
+    position: relative;
+  }
+
+  .orbit__ring {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: var(--ring);
+    height: var(--ring);
+    translate: -50% 0;
+    /* The ring draws from 12 o'clock, clockwise. */
+    rotate: -90deg;
+    overflow: visible;
+  }
+
+  .orbit__ring circle {
+    fill: none;
+    stroke: var(--color-rule);
+    stroke-width: 1;
+    stroke-dasharray: 1;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .orbit__list {
+    display: grid;
+    grid-template-columns: 1fr var(--ring) 1fr;
+    align-items: center;
+    min-height: var(--ring);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .orbit__item--start {
+    grid-column: 1;
+    justify-self: end;
+  }
+
+  .orbit__item--end {
+    grid-column: 3;
+    justify-self: start;
+  }
+
+  /* Each link ends in a dot centred on the ring line. */
+  .orbit :global(.orbit__link) {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: var(--tap-min);
+    color: var(--color-text);
+    text-decoration: none;
+  }
+
+  .orbit :global(.orbit__link)::before,
+  .orbit :global(.orbit__link)::after {
+    flex: none;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: var(--color-text);
+    box-shadow: 0 0 0 3px var(--color-bg);
+    transition: background-color 0.2s ease;
+  }
+
+  .orbit__item--start :global(.orbit__link)::after {
+    content: '';
+    margin-inline-end: -0.25rem;
+  }
+
+  .orbit__item--end :global(.orbit__link)::before {
+    content: '';
+    margin-inline-start: -0.25rem;
+  }
+
+  .orbit :global(.orbit__link:hover) {
+    text-decoration-line: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.3em;
+  }
+
+  .orbit :global(.orbit__link:is(:hover, :focus-visible))::before,
+  .orbit :global(.orbit__link:is(:hover, :focus-visible))::after {
+    background: var(--color-accent);
+  }
+
+  /* Replay, then the stop control, in one cell at 6 o'clock: secondary, small
+     and muted. Each keeps its space when hidden, so neither moves the layout. */
+  .welcome__actions {
+    display: grid;
+    grid-template-areas: 'action';
+    justify-items: center;
+  }
+
+  .welcome__action {
+    grid-area: action;
+    min-height: var(--tap-min);
+    padding-inline: var(--space-3);
+    border: 0;
+    background: none;
+    color: var(--color-muted);
+    font: inherit;
+    font-size: var(--text-small);
+    cursor: pointer;
+    visibility: hidden;
+  }
+
+  .welcome__action:hover {
+    text-decoration-line: underline;
+    text-underline-offset: 0.3em;
+  }
+
+  /* ---------- States ---------- */
+
+  /* While the intro starts or plays: the menu is hidden (out of the tab order
+     and away from screen readers), its ring undrawn and its links clear, ready
+     for the reveal. */
+  :global(:root:is([data-intro='starting'], [data-intro='playing'])) .orbit {
+    visibility: hidden;
+  }
+
+  :global(:root:is([data-intro='starting'], [data-intro='playing'])) .orbit__ring circle {
+    stroke-dashoffset: 1;
+  }
+
+  :global(:root:is([data-intro='starting'], [data-intro='playing'])) .orbit :global(.orbit__link),
+  :global(:root:is([data-intro='starting'], [data-intro='playing'])) .welcome__replay {
+    opacity: 0;
+  }
+
+  /* The stop control: only while the intro moves. */
+  :global(:root[data-welcome][data-intro='playing']) .welcome__stop {
+    visibility: visible;
+  }
+
+  /* Replay: once the script is ready and the intro isn't playing; never with
+     reduced motion. */
+  @media (prefers-reduced-motion: no-preference) {
+    :global(:root[data-welcome]:not([data-intro='starting']):not([data-intro='playing'])) .welcome__replay {
+      visibility: visible;
+    }
+  }
+
+  /* The reveal when the intro completes: the ring draws, then the links and
+     Replay fade in, opacity only. Not after the stop control (data-reveal),
+     on a return visit (already at rest at the first paint) or with reduced
+     motion (global.css). */
+  :global(:root[data-intro='rest']:not([data-reveal='instant'])) .orbit__ring circle {
+    transition: stroke-dashoffset 900ms var(--ease);
+  }
+
+  :global(:root[data-intro='rest']:not([data-reveal='instant'])) .orbit :global(.orbit__link),
+  :global(:root[data-intro='rest']:not([data-reveal='instant'])) .welcome__replay {
+    transition: opacity 600ms var(--ease) 700ms;
+  }
+
+  :global(:root[data-intro='rest']:not([data-reveal='instant'])) .orbit__item--end :global(.orbit__link) {
+    transition-delay: 850ms;
+  }
+
+  :global(:root[data-intro='rest']:not([data-reveal='instant'])) .welcome__replay {
+    transition-delay: 1000ms;
+  }
+
+  /* A focused control is fully visible at once, focus ring included, even
+     during the reveal (hence !important over the reveal's more specific
+     transitions). */
+  .orbit :global(.orbit__link:focus-visible),
+  .welcome__action:focus-visible {
+    opacity: 1;
+    transition: none !important;
+  }
+
+  /* Replay's fade: the figures and the cue out, then back in from the first
+     frame. */
+  :global([data-ritual-frame='welcome-ritual']) :global(:is(.ritual__figures, .ritual__text)) {
+    transition: opacity 300ms cubic-bezier(0.45, 0, 0.25, 1);
+  }
+
+  :global([data-ritual-frame='welcome-ritual'][data-fading]) :global(:is(.ritual__figures, .ritual__text)) {
+    opacity: 0;
+    transition-duration: 200ms;
+  }
+</style>

@@ -1,0 +1,405 @@
+---
+// Dev-only review page for the new female character, at /dev/new-character/
+// and /en/dev/new-character/, rendered by the dev routes in
+// src/pages/dev/[prototype].astro and src/pages/en/dev/[prototype].astro.
+// The character comes from reference_assets/Karakter Turnaround Model
+// Sayfası.png (top row, the female: 90° right, 45° right and front), traced
+// into flat colour layers and lines, with the faces, hair strands and finger
+// and toe separations drawn from measurements of the same figures
+// (./female-views.ts, by ../../../../character-tracing/). Not connected to the site's
+// existing character, the intro or the homepage. The page shows the three views
+// side by side, each over its reference crop (adjustable), a shared magnifier,
+// the eyes before and after their revision side by side, and a simple side →
+// 45° → front transition to judge continuity.
+import type { Lang } from '../../i18n/ui';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { DETAIL_WIDTH, EDGE_WIDTH, HAIR_EDGE_WIDTH, OUTLINE_WIDTH, bodies, crops, details, drawn, fills, palette, type Art, type ViewId } from './female-views';
+import frontRef from './reference/front.png';
+import q45Ref from './reference/q45.png';
+import sideRef from './reference/side.png';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const translations = { tr: '/dev/new-character/', en: '/en/dev/new-character/' };
+const refs: Record<ViewId, string> = { side: sideRef.src, q45: q45Ref.src, front: frontRef.src };
+const order: readonly ViewId[] = ['side', 'q45', 'front'];
+
+/** The whole figure, and the regions the magnifier can show (viewBox units). */
+const WHOLE = '82 26 136 422';
+const REGIONS = {
+  whole: WHOLE,
+  head: '106 18 88 104',
+  eyes: '134 56 48 22',
+  torso: '100 92 100 150',
+  hands: '92 222 116 72',
+  feet: '100 392 100 52',
+} as const;
+
+/** Each view's eyes and brows, for the before/after comparison (viewBox units). */
+const EYES: Record<ViewId, string> = { side: '147 59 36 14', q45: '145 59 36 14', front: '131.5 59 36 14' };
+
+let drawings = 0;
+
+/**
+ * A view, in this order: the skin; inside the silhouette, the skin's shading,
+ * what is drawn on the skin (under the suit and the hair), the suit and the
+ * hair, the detail lines and the edges (clipped, so their ends stop on the
+ * outline); the silhouette stroked as the outer outline, in the skin's line
+ * colour and, through masks of the suit and the hair (widened by the stroke,
+ * so its outer half follows), in theirs; then what is drawn over the figure
+ * (the face, the hair's strands, the finger and toe separations: clipped) and
+ * the side view's loose lock (free). With `previous`, the eyes are the ones from
+ * before their revision (for the comparison).
+ */
+function figure(view: ViewId, previous = false) {
+  const art: Art = bodies[view];
+  const id = `nc${++drawings}`;
+  const path = (d: string, attrs: string) => (d ? `<path d="${d}" ${attrs}/>` : '');
+  const fill = (layer: (typeof fills)[number]) => path(art[layer], `fill="${palette[layer]}"`);
+  const mask = (part: 'suit' | 'hair') =>
+    `<mask id="${id}-${part}" maskUnits="userSpaceOnUse" x="0" y="0" width="300" height="460">` +
+    `<path d="${art[part]}" fill="white" stroke="white" stroke-width="${2 * OUTLINE_WIDTH}"/></mask>`;
+  const outline = (layer: 'skinLine' | 'suitLine' | 'hairLine', part?: 'suit' | 'hair') =>
+    path(art.outline, `stroke="${palette[layer]}" stroke-width="${OUTLINE_WIDTH}"${part ? ` mask="url(#${id}-${part})"` : ''}`);
+  const inside = (markup: string) => `<g clip-path="url(#${id}-silhouette)">${markup}</g>`;
+  const marks = drawn[view];
+  return (
+    `<defs>${mask('suit')}${mask('hair')}<clipPath id="${id}-silhouette"><path d="${art.outline}"/></clipPath></defs>` +
+    fill('skin') +
+    inside(
+      fill('skinShade') +
+        fill('skinShade2') +
+        marks.skin.replaceAll('{id}', id) +
+        fill('suit') +
+        fill('hair') +
+        '<g fill="none" stroke-linecap="round" stroke-linejoin="round">' +
+        `<g stroke-width="${DETAIL_WIDTH}">${details.map((layer) => path(art[layer], `stroke="${palette[layer]}"`)).join('')}</g>` +
+        path(art.suitEdge, `stroke="${palette.suitLine}" stroke-width="${EDGE_WIDTH}"`) +
+        path(art.skinEdge, `stroke="${palette.skinLine}" stroke-width="${EDGE_WIDTH}"`) +
+        path(art.hairEdge, `stroke="${palette.hairLine}" stroke-width="${HAIR_EDGE_WIDTH}"`) +
+        '</g>',
+    ) +
+    '<g fill="none" stroke-linecap="round" stroke-linejoin="round">' +
+    outline('skinLine') +
+    outline('suitLine', 'suit') +
+    outline('hairLine', 'hair') +
+    '</g>' +
+    inside((previous ? marks.overBefore : marks.over).replaceAll('{id}', id)) +
+    marks.free
+  );
+}
+
+const t = {
+  tr: {
+    title: 'Yeni karakter: üç görünüm',
+    intro:
+      'Kadın karakter, verilen dönüş referansından (Karakter Turnaround Model Sayfası, üst sıra) çizildi: yandan (sağa bakıyor), 45° sağ ve önden. Yüz hatları, saç telleri ve parmak ile ayak parmağı aralıkları her görünümün kendi tam boy figüründen ölçülerek çizildi; yakın plan yüz panelleri farklı açıda olduğu için yalnızca ayrıntıları okumak için kullanıldı. Saç topuzu, oranlar, atlet ve tayt, renkler referanstan. Sitenin mevcut karakteri kullanılmadı. Yalnızca inceleme içindir: giriş ve ana sayfa değişmedi.',
+    views: { side: 'Yan (sağ)', q45: '45° sağ', front: 'Ön' },
+    reference: 'Referansı altta göster',
+    opacity: 'Referans opaklığı',
+    region: 'Büyütülen bölge',
+    regions: { whole: 'Tüm figür', head: 'Baş', eyes: 'Gözler', torso: 'Gövde', hands: 'Eller', feet: 'Ayaklar' },
+    eyes: 'Gözler: önceki ve düzeltilmiş',
+    eyesNote:
+      'Her görünümün gözleri ve kaşları, yakından. Solda önceki, sağda düzeltilmiş gözler; yukarıdaki referans ayarı burada da geçerli. Önden görünümde göz biçimi aynı kaldı; yalnızca diğer görünümlerle tutarlılık için gözbebeği, küçük bir ışık yansıması ve üst kapağın hafif gölgesi eklendi.',
+    previous: 'Önceki',
+    revised: 'Düzeltilmiş',
+    transition: 'Geçiş önizlemesi',
+    transitionNote:
+      'Basit bir önizleme: görünümler arasında baştan ayağa doğru ilerleyen yumuşak bir geçiş (önce baş döner). Gerçek, parça parça dönüş için görünümlerin eklemlere ayrılması gerekir; bu adımda yapılmadı.',
+    play: 'Oynat',
+    loop: 'Döngü',
+    progress: 'İlerleme',
+  },
+  en: {
+    title: 'New character: three views',
+    intro:
+      'The female character, drawn from the supplied turnaround reference (Karakter Turnaround Model Sayfası, top row): side (facing right), 45° right and front. The facial features, hair strands and finger and toe separations are drawn from measurements of each view’s own full figure; the face close-ups are turned differently, so they served only to read the details. The hair bun, proportions, tank top and leggings, and colours come from the reference. The site’s existing character was not used. For review only: the intro and the homepage are unchanged.',
+    views: { side: 'Side (right)', q45: '45° right', front: 'Front' },
+    reference: 'Show the reference underneath',
+    opacity: 'Reference opacity',
+    region: 'Magnified region',
+    regions: { whole: 'Whole figure', head: 'Head', eyes: 'Eyes', torso: 'Torso', hands: 'Hands', feet: 'Feet' },
+    eyes: 'Eyes: previous and revised',
+    eyesNote:
+      'Each view’s eyes and brows, close up: the previous eyes on the left, the revised ones on the right. The reference setting above applies here too. The front view’s eye shapes are unchanged; only a pupil, a small catchlight and the upper lid’s soft shadow were added, for consistency with the other views.',
+    previous: 'Previous',
+    revised: 'Revised',
+    transition: 'Transition preview',
+    transitionNote:
+      'A simple preview: a soft cross-dissolve between the views, travelling from head to feet (the head turns first). A real part-by-part turn needs the views split into joints, which this step does not do.',
+    play: 'Play',
+    loop: 'Loop',
+    progress: 'Progress',
+  },
+}[lang];
+---
+
+<BaseLayout title={`${t.title} (dev)`} translations={translations} lockup>
+  <div class="nc container" data-dev-only data-nc-root>
+    <h1 class="nc__title">{t.title}</h1>
+    <p class="nc__intro">{t.intro}</p>
+
+    <div class="nc__controls ui">
+      <label class="nc__field"><input type="checkbox" data-nc-ref /> {t.reference}</label>
+      <label class="nc__field">
+        {t.opacity}
+        <input type="range" min="0" max="1" step="0.05" value="0.5" data-nc-opacity />
+      </label>
+      <label class="nc__field">
+        {t.region}
+        <select data-nc-region>
+          {Object.entries(REGIONS).map(([key, box]) => <option value={box}>{t.regions[key as keyof typeof REGIONS]}</option>)}
+        </select>
+      </label>
+    </div>
+
+    <div class="nc__views">
+      {
+        order.map((view) => (
+          <figure class="nc__stage">
+            <svg viewBox={WHOLE} role="img" aria-label={t.views[view]} data-nc-view>
+              <image class="nc__ref" href={refs[view]} x={crops[view][0]} y={crops[view][1]} width={crops[view][2]} height={crops[view][3]} />
+              <g class="nc__art" set:html={figure(view)} />
+            </svg>
+            <figcaption class="ui">{t.views[view]}</figcaption>
+          </figure>
+        ))
+      }
+    </div>
+
+    <h2 class="nc__h2 ui">{t.eyes}</h2>
+    <p class="nc__intro nc__note">{t.eyesNote}</p>
+    <div class="nc__compare">
+      {
+        order.map((view) =>
+          [true, false].map((previous) => (
+            <figure class="nc__stage">
+              <svg viewBox={EYES[view]} role="img" aria-label={`${t.views[view]}: ${previous ? t.previous : t.revised}`}>
+                <image class="nc__ref" href={refs[view]} x={crops[view][0]} y={crops[view][1]} width={crops[view][2]} height={crops[view][3]} />
+                <g class="nc__art" set:html={figure(view, previous)} />
+              </svg>
+              <figcaption class="ui">
+                {t.views[view]}: {previous ? t.previous : t.revised}
+              </figcaption>
+            </figure>
+          )),
+        )
+      }
+    </div>
+
+    <h2 class="nc__h2 ui">{t.transition}</h2>
+    <p class="nc__intro nc__note">{t.transitionNote}</p>
+    <div class="nc__controls ui">
+      <button type="button" class="nc__button" data-nc-play>{t.play}</button>
+      <label class="nc__field"><input type="checkbox" data-nc-loop checked /> {t.loop}</label>
+      <label class="nc__field nc__field--time">
+        {t.progress}
+        <input type="range" min="0" max="1000" step="1" value="0" data-nc-progress />
+      </label>
+    </div>
+    <figure class="nc__stage nc__stage--turn">
+      <svg viewBox={WHOLE} role="img" aria-label={t.transition}>
+        <defs>
+          {
+            order.slice(1).flatMap((view) =>
+              (['in', 'out'] as const).map((way) => (
+                <>
+                  <linearGradient id={`nc-${way}-${view}`} gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="0" y2="0" data-nc-edge={view}>
+                    <stop offset="0" stop-color={way === 'in' ? 'white' : 'black'} />
+                    <stop offset="1" stop-color={way === 'in' ? 'black' : 'white'} />
+                  </linearGradient>
+                  <mask id={`nc-mask-${way}-${view}`} maskUnits="userSpaceOnUse" x="-100" y="-100" width="500" height="700">
+                    <rect x="-100" y="-100" width="500" height="700" fill={`url(#nc-${way}-${view})`} />
+                  </mask>
+                </>
+              )),
+            )
+          }
+        </defs>
+        {/* Each view comes in where the next one's edge has passed and goes out as the one after it comes in. */}
+        <g mask="url(#nc-mask-out-q45)" set:html={figure('side')} />
+        <g mask="url(#nc-mask-out-front)">
+          <g mask="url(#nc-mask-in-q45)" set:html={figure('q45')} />
+        </g>
+        <g mask="url(#nc-mask-in-front)" set:html={figure('front')} />
+      </svg>
+    </figure>
+  </div>
+</BaseLayout>
+
+<script>
+  const root = document.querySelector<HTMLElement>('[data-nc-root]')!;
+  const q = <T extends Element>(selector: string) => root.querySelector<T>(selector)!;
+
+  q<HTMLInputElement>('[data-nc-ref]').addEventListener('change', (event) => root.toggleAttribute('data-ref', (event.target as HTMLInputElement).checked));
+  const opacity = q<HTMLInputElement>('[data-nc-opacity]');
+  const setOpacity = () => root.style.setProperty('--nc-ref-opacity', opacity.value);
+  opacity.addEventListener('input', setOpacity);
+  setOpacity();
+  q<HTMLSelectElement>('[data-nc-region]').addEventListener('change', (event) => {
+    const box = (event.target as HTMLSelectElement).value;
+    const [, , w, h] = box.split(' ').map(Number);
+    for (const svg of root.querySelectorAll<SVGSVGElement>('[data-nc-view]')) {
+      svg.setAttribute('viewBox', box);
+      svg.style.aspectRatio = `${w} / ${h}`;
+    }
+  });
+
+  // The transition: a cross-dissolve along a soft edge that travels from above
+  // the head to below the feet, so the head changes first. Side → 45° over the
+  // first half, 45° → front over the second.
+  const TOP = 20;
+  const BOTTOM = 450;
+  const SOFT = 140;
+  const MS = 3000;
+  const edges = ['q45', 'front'].map((view) => [...root.querySelectorAll<SVGLinearGradientElement>(`[data-nc-edge="${view}"]`)]);
+  const progress = q<HTMLInputElement>('[data-nc-progress]');
+  const loop = q<HTMLInputElement>('[data-nc-loop]');
+  const ease = (x: number) => (x < 0.5 ? 4 * x ** 3 : 1 - (-2 * x + 2) ** 3 / 2);
+
+  function show(p: number) {
+    edges.forEach((pair, i) => {
+      const local = ease(Math.min(1, Math.max(0, p * 2 - i)));
+      // The edge's centre, from above the figure (the next view not shown yet) to below it (all of it shown).
+      const y = TOP - SOFT + local * (BOTTOM - TOP + 2 * SOFT);
+      for (const edge of pair) {
+        edge.setAttribute('y1', String(y - SOFT / 2));
+        edge.setAttribute('y2', String(y + SOFT / 2));
+      }
+    });
+    progress.value = String(Math.round(p * 1000));
+  }
+
+  let frame = 0;
+  let start = 0;
+  function tick(now: number) {
+    const elapsed = (now - start) % (MS + 1600);
+    // Hold the side view, turn, hold the front view.
+    const p = Math.min(1, Math.max(0, (elapsed - 600) / MS));
+    show(p);
+    if (!loop.checked && now - start > MS + 1000) return void (frame = 0);
+    frame = requestAnimationFrame(tick);
+  }
+  q<HTMLButtonElement>('[data-nc-play]').addEventListener('click', () => {
+    cancelAnimationFrame(frame);
+    start = performance.now();
+    frame = requestAnimationFrame(tick);
+  });
+  progress.addEventListener('input', () => {
+    cancelAnimationFrame(frame);
+    frame = 0;
+    show(Number(progress.value) / 1000);
+  });
+  show(0);
+</script>
+
+<style>
+  .nc {
+    display: grid;
+    gap: var(--space-3);
+    padding-block: var(--space-4) var(--space-6);
+  }
+
+  .nc__title {
+    margin: 0;
+    font-size: var(--text-h2);
+    font-weight: 300;
+  }
+
+  .nc__intro {
+    max-width: 44rem;
+    margin: 0;
+  }
+
+  .nc__note {
+    font-size: var(--text-small);
+    color: var(--color-muted);
+  }
+
+  .nc__h2 {
+    margin: var(--space-4) 0 0;
+  }
+
+  .nc__controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-3);
+  }
+
+  .nc__field {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .nc__field--time input {
+    width: min(20rem, 60vw);
+  }
+
+  .nc__button,
+  .nc__controls select {
+    min-height: 2.25rem;
+    padding-inline: var(--space-3);
+    border: 1px solid var(--color-rule);
+    border-radius: 999px;
+    background: var(--color-bg);
+    color: var(--color-text);
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .nc__views {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-3);
+  }
+
+  .nc__stage {
+    display: grid;
+    gap: var(--space-1);
+    min-width: 0;
+    margin: 0;
+    text-align: center;
+    font-size: var(--text-small);
+  }
+
+  .nc__stage svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 136 / 422;
+  }
+
+  .nc__compare {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3);
+  }
+
+  .nc__compare svg {
+    aspect-ratio: 36 / 14;
+  }
+
+  .nc__stage--turn {
+    width: min(18rem, 100%);
+    justify-self: center;
+  }
+
+  .nc__ref {
+    display: none;
+  }
+
+  /* The reference under the drawing, which turns translucent to show it. */
+  .nc[data-ref] .nc__ref {
+    display: inline;
+  }
+
+  .nc[data-ref] .nc__art {
+    opacity: calc(1 - var(--nc-ref-opacity));
+  }
+</style>

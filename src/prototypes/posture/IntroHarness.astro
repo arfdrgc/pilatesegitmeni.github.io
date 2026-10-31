@@ -1,0 +1,446 @@
+---
+// Development harness for the intro ritual (dev only), at /dev/posture-intro/
+// and /en/dev/posture-intro/, rendered by src/pages/dev/[prototype].astro and
+// src/pages/en/dev/[prototype].astro. Step 2: the live ritual, which plays once
+// on load (unless reduced motion is preferred, or forced with ?motion=reduce),
+// with development controls to replay, pause, change the speed and scrub;
+// then the still frames, one screen tall each, for comparison: the slouched
+// start, the neutral end, the reduced-motion version, and every sentence in
+// the cue line. The hero and the homepage are untouched.
+import '../../styles/fonts.css';
+import '../../styles/tokens.css';
+import '../../styles/global.css';
+import brand from '../../config/brand.json';
+import type { Lang } from '../../i18n/ui';
+import { otherLang, t } from '../../i18n/utils';
+import IntroRitual from '../../components/ritual/IntroRitual.astro';
+import { copy, introPaths, prototypePaths } from './copy';
+import { DURATION } from '../../components/ritual/intro/timeline';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const r = copy[lang].ritual;
+const h = r.harness;
+const other = otherLang(lang);
+const speeds = [1, 0.5, 0.25].map((rate) => ({ rate, label: `${rate.toLocaleString(lang === 'tr' ? 'tr-TR' : 'en-GB')}×` }));
+const sentences = [r.title, ...r.cues];
+const frames = [
+  { id: 'start', pose: 'slouch', variant: 'animated', sentence: 0 },
+  { id: 'end', pose: 'neutral', variant: 'animated', sentence: sentences.length - 1 },
+  { id: 'static', pose: 'neutral', variant: 'static' },
+] as const;
+---
+
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>{h.metaTitle}</title>
+    <!--
+      Set before the first paint. ?motion=reduce shows the reduced-motion
+      version, as if it were preferred. data-intro lets the live ritual show
+      its slouched start while the player loads; if the player hasn't started
+      within 3 s, it is removed again, and the ritual shows the static version.
+    -->
+    <script is:inline>
+      const html = document.documentElement;
+      if (new URLSearchParams(location.search).get('motion') === 'reduce') html.dataset.motion = 'reduce';
+      html.dataset.intro = 'starting';
+      setTimeout(() => {
+        if (html.dataset.intro === 'starting') delete html.dataset.intro;
+      }, 3000);
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">{t(lang).skipToContent}</a>
+
+    <header class="top container">
+      <a class="top__mark" href={prototypePaths[lang]}>{brand.name}</a>
+      <nav class="top__links ui" aria-label={t(lang).mainNav}>
+        <a class="top__link" href={prototypePaths[lang]}>{h.backLink}</a>
+        <a class="top__link" href={introPaths[other]} lang={other} hreflang={other}>{copy[lang].languageLink}</a>
+      </nav>
+    </header>
+
+    <main id="main" tabindex="-1">
+      <div class="harness__head container">
+        <h1 class="harness__title">{h.title}</h1>
+        <p class="harness__intro">{h.intro}</p>
+        {r.draftNote && <p class="harness__draft ui" data-dev-only>{r.draftNote}</p>}
+        <nav class="harness__nav ui" aria-label={h.framesNav}>
+          {
+            ['play' as const, ...frames.map((frame) => frame.id), 'cues' as const].map((frame) => (
+              <a class="harness__link" href={`#${frame}`}>
+                {h.frames[frame].title}
+              </a>
+            ))
+          }
+        </nav>
+      </div>
+
+      <section class="harness__frame" id="play" aria-labelledby="play-label">
+        <div class="harness__label container">
+          <h2 class="harness__h2 ui" id="play-label">{h.frames.play.title}</h2>
+          <p class="harness__note ui">{h.frames.play.note} {h.skipNote}</p>
+          <div class="controls ui" role="group" aria-label={h.controls.label} data-controls>
+            <button class="controls__button" type="button" data-replay>{h.controls.replay}</button>
+            <button class="controls__button" type="button" data-toggle data-pause={h.controls.pause} data-resume={h.controls.resume}>
+              {h.controls.pause}
+            </button>
+            <label class="controls__field">
+              {h.controls.speed}
+              <select class="controls__select" data-speed>
+                {speeds.map(({ rate, label }) => <option value={rate}>{label}</option>)}
+              </select>
+            </label>
+            <label class="controls__field controls__field--time">
+              {h.controls.time}
+              <input class="controls__range" type="range" min="0" max={DURATION} step="10" value="0" data-seek />
+            </label>
+            <span class="controls__readout" data-readout aria-hidden="true">0 ms</span>
+            <p class="controls__reduced" data-reduced hidden>{h.controls.reduced}</p>
+          </div>
+        </div>
+        <IntroRitual lang={lang} variant="live" id="play-ritual" />
+      </section>
+
+      {
+        frames.map((frame) => (
+          <section class="harness__frame" id={frame.id} aria-labelledby={`${frame.id}-label`}>
+            <div class="harness__label container">
+              <h2 class="harness__h2 ui" id={`${frame.id}-label`}>
+                {h.frames[frame.id].title}
+              </h2>
+              <p class="harness__note ui">
+                {h.frames[frame.id].note} {h.skipNote}
+              </p>
+            </div>
+            <IntroRitual
+              lang={lang}
+              pose={frame.pose}
+              variant={frame.variant}
+              sentence={'sentence' in frame ? frame.sentence : undefined}
+              id={`${frame.id}-ritual`}
+            />
+          </section>
+        ))
+      }
+
+      <section class="harness__frame" id="cues" aria-labelledby="cues-label">
+        <div class="harness__label container">
+          <h2 class="harness__h2 ui" id="cues-label">{h.frames.cues.title}</h2>
+          <p class="harness__note ui">{h.frames.cues.note}</p>
+        </div>
+        <ol class="cues container" role="list">
+          {
+            sentences.map((text, i) => (
+              <li class="cues__item">
+                <span class="cues__n ui" aria-hidden="true">
+                  {i + 1}
+                </span>
+                <p class:list={['cues__line', !i && 'cues__line--title']}>{text}</p>
+              </li>
+            ))
+          }
+        </ol>
+      </section>
+    </main>
+
+    <footer class="foot container ui">
+      <span>{brand.name}</span>
+      <span data-dev-only>{copy[lang].devNote}</span>
+    </footer>
+  </body>
+</html>
+
+<script>
+  import { poseAt, sentenceOpacity, transformsAt } from '../../components/ritual/intro/pose';
+  import { createPlayer } from '../../components/ritual/intro/controller';
+  import { DURATION } from '../../components/ritual/intro/timeline';
+
+  const root = document.querySelector<HTMLElement>('[data-ritual-live]');
+  const controls = document.querySelector<HTMLElement>('[data-controls]');
+  if (root && controls) {
+    const player = createPlayer(root);
+    const motion = matchMedia('(prefers-reduced-motion: reduce)');
+    const reduced = () => motion.matches || document.documentElement.dataset.motion === 'reduce';
+    const toggle = controls.querySelector<HTMLButtonElement>('[data-toggle]')!;
+    const seek = controls.querySelector<HTMLInputElement>('[data-seek]')!;
+    const readout = controls.querySelector<HTMLElement>('[data-readout]')!;
+    const html = document.documentElement;
+    // The player is running: the live ritual's styles hand the frame to it.
+    // If the page had already fallen back to the static version (the player
+    // started too late), the controls bring the player back.
+    const take = () => (html.dataset.intro = 'playing');
+
+    player.onUpdate = (time) => {
+      seek.value = String(Math.round(time));
+      readout.textContent = `${Math.round(time)} ms`;
+      toggle.textContent = (player.playing ? toggle.dataset.pause : toggle.dataset.resume) ?? '';
+    };
+
+    // Reduced motion: no movement at all, the final upright pose, and the
+    // controls off. The live frame's styles already show the list of cues.
+    const applyReduced = () => {
+      const on = reduced();
+      controls.querySelectorAll<HTMLButtonElement | HTMLSelectElement | HTMLInputElement>('button, select, input').forEach((el) => (el.disabled = on));
+      controls.querySelector<HTMLElement>('[data-reduced]')!.hidden = !on;
+      if (on) {
+        player.pause();
+        player.seek(DURATION);
+      }
+    };
+    motion.addEventListener('change', applyReduced);
+
+    controls.querySelector('[data-replay]')!.addEventListener('click', () => {
+      take();
+      player.replay();
+    });
+    toggle.addEventListener('click', () => {
+      take();
+      if (player.playing) player.pause();
+      else player.play();
+    });
+    controls.querySelector<HTMLSelectElement>('[data-speed]')!.addEventListener('change', (event) => {
+      player.rate = Number((event.target as HTMLSelectElement).value);
+    });
+    seek.addEventListener('input', () => {
+      // Read first: pausing updates the slider to the current time.
+      const ms = Number(seek.value);
+      take();
+      player.pause();
+      player.seek(ms);
+    });
+
+    if (reduced()) applyReduced();
+    else if (html.dataset.intro === 'starting') {
+      take();
+      player.play();
+    }
+
+    // For checks from the browser console (development only).
+    Object.assign(window, { __ritual: { player, poseAt, transformsAt, sentenceOpacity, DURATION } });
+  }
+</script>
+
+<style>
+  .top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2) var(--space-4);
+    padding-block: var(--space-3);
+  }
+
+  .top__mark {
+    color: var(--color-text);
+    font-size: 1.5rem;
+    letter-spacing: -0.015em;
+    text-decoration: none;
+  }
+
+  .top__links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-4);
+  }
+
+  .top__link {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap-min);
+    color: var(--color-text);
+    text-decoration: none;
+  }
+
+  .top__link:hover {
+    text-decoration-line: underline;
+  }
+
+  .harness__head {
+    display: grid;
+    gap: var(--space-3);
+    padding-block: var(--space-4) var(--space-5);
+  }
+
+  .harness__title {
+    font-size: var(--text-h2);
+    font-weight: 300;
+    letter-spacing: var(--tracking-heading);
+  }
+
+  .harness__intro {
+    max-width: var(--measure);
+    color: var(--color-muted);
+    font-size: var(--text-lead);
+  }
+
+  .harness__draft {
+    justify-self: start;
+    padding: var(--space-1) var(--space-2);
+    border: 1px dashed currentColor;
+    color: var(--color-accent);
+  }
+
+  .harness__nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .harness__link {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap-min);
+    padding-inline: var(--space-3);
+    border: 1px solid var(--color-rule);
+    border-radius: 999px;
+    color: var(--color-text);
+    text-decoration: none;
+  }
+
+  .harness__link:hover {
+    border-color: var(--color-muted);
+  }
+
+  /* Each frame starts with its label, then the ritual one screen tall. */
+  .harness__frame {
+    border-top: 1px solid var(--color-rule);
+    scroll-margin-top: 0;
+  }
+
+  .harness__label {
+    display: grid;
+    gap: var(--space-1);
+    padding-block: var(--space-3);
+    background: var(--color-surface);
+  }
+
+  .harness__h2 {
+    font-weight: 600;
+  }
+
+  .harness__note {
+    max-width: var(--measure);
+    color: var(--color-muted);
+    font-weight: 400;
+  }
+
+  /* ---------- Development controls ---------- */
+
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-3);
+    margin-top: var(--space-2);
+  }
+
+  .controls__button,
+  .controls__select {
+    min-height: var(--tap-min);
+    padding-inline: var(--space-3);
+    border: 1px solid var(--color-rule);
+    border-radius: 999px;
+    background: var(--color-bg);
+    color: var(--color-text);
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .controls__button:hover:not(:disabled),
+  .controls__select:hover:not(:disabled) {
+    border-color: var(--color-muted);
+  }
+
+  .controls__button:disabled,
+  .controls__select:disabled,
+  .controls__range:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  .controls__field {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: var(--tap-min);
+  }
+
+  .controls__field--time {
+    flex: 1 1 12rem;
+  }
+
+  .controls__range {
+    flex: 1;
+    min-width: 0;
+    accent-color: var(--color-accent);
+  }
+
+  .controls__readout {
+    min-width: 5.5em;
+    color: var(--color-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .controls__reduced {
+    flex-basis: 100%;
+    color: var(--color-accent);
+  }
+
+  /* ---------- Cue lines ---------- */
+
+  /* The same type and two-line height as the ritual's cue line, at the
+     ritual's text width. */
+  .cues {
+    display: grid;
+    gap: var(--space-4);
+    margin: 0;
+    padding-block: var(--space-5);
+    list-style: none;
+  }
+
+  .cues__item {
+    display: grid;
+    grid-template-columns: 1.5rem minmax(0, 24rem);
+    gap: var(--space-3);
+    align-items: start;
+  }
+
+  .cues__n {
+    padding-top: 0.35em;
+    color: var(--color-muted);
+  }
+
+  .cues__line {
+    min-height: calc(2 * 1.3em);
+    font-size: clamp(1.25rem, 1.1rem + 0.667vw, 1.75rem);
+    line-height: 1.3;
+    text-wrap: balance;
+    outline: 1px dashed var(--color-rule);
+  }
+
+  /* The title, in the ritual's title type. */
+  .cues__line--title {
+    font-size: clamp(1.75rem, 1.375rem + 1.667vw, 2.75rem);
+    font-weight: 300;
+    line-height: 1.15;
+    letter-spacing: var(--tracking-heading);
+  }
+
+  .foot {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--space-2) var(--space-4);
+    padding-block: var(--space-4);
+    border-top: 1px solid var(--color-rule);
+    color: var(--color-muted);
+  }
+</style>

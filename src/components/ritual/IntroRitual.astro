@@ -1,0 +1,375 @@
+---
+// The intro ritual: the two characters side by side in the same movement,
+// the male from the front and the female from the side, facing right, with the
+// title and the cues. Rendered by ./WelcomeRitual.astro on the coming-soon pages
+// (/ and /en/, `hero`) and by the development harness
+// (src/prototypes/posture/IntroHarness.astro, every variant).
+// Variants:
+// - `animated` and `static`: still frames for review. `animated` shows one
+//   sentence (the title or a cue) in the cue line, in the movement's slouched
+//   first frame or its last, the approved neutral pose (no joint rotated);
+//   `static` is the reduced-motion version, upright with the title and every
+//   cue at once.
+// - `live`: the playable ritual, driven by ./intro/controller.ts, which shows
+//   one sentence at a time. Its styles show the slouched start and an empty
+//   cue line only while motion is allowed and the page has marked the player
+//   as starting or playing (data-intro on <html>). With data-intro="rest" it
+//   is the completed state: the neutral pose and the last cue. Otherwise
+//   (no data-intro, or reduced motion) it is the reduced-motion version.
+// `hero` (the coming-soon pages): no skip button, a height that fits under the
+// site header, and slotted content (WelcomeRitual's menu and the coming-soon
+// text) laid out below the cue and the figures. In the harness the skip button
+// still does nothing.
+import type { Lang } from '../../i18n/ui';
+import { characterMarkup } from './body';
+import Character from './Character.astro';
+import { ritual } from '../../config/ritual';
+import { pivotsOf } from './intro/frontPose';
+import { cssOf, transformsAt } from './intro/pose';
+import { views } from './intro/poses';
+import { FLOOR, characters, type CharacterId } from './proportions';
+
+interface Props {
+  lang: Lang;
+  /** `slouch`: the movement's first frame; `neutral`: its last. Ignored by `live`. */
+  pose?: 'slouch' | 'neutral';
+  variant: 'animated' | 'static' | 'live';
+  /** The sentence shown in an `animated` frame: 0 is the title, then the cues. */
+  sentence?: number;
+  /** Id of the title, unique on the page. */
+  id: string;
+  /**
+   * In a page's hero (WelcomeRitual.astro), not the harness: see the note at
+   * the top. The frame is then part of the page, whose heading is the
+   * coming-soon title, so it isn't labelled as a region of its own.
+   */
+  hero?: boolean;
+}
+
+const { lang, pose = 'neutral', variant, sentence = 0, id, hero = false } = Astro.props;
+const r = ritual[lang];
+const live = variant === 'live';
+const sentences = [r.title, ...r.cues];
+const sentenceClass = (i: number) => (i ? undefined : 'ritual__cue--title');
+
+// Both characters in one viewBox, the second GAP units to the right of the
+// first. The crop fits the slouched pose as well as the neutral one, so the
+// figures don't move between frames: measured in Chrome, the male's front view
+// spans x 97–203 with his arms, the female's side view 128.7–190.2 (neutral)
+// and 130.3–224.5 (slouched, head forward), plus GAP; y from 28 (hair) to FLOOR.
+const GAP = 100;
+const VIEW = { x: 88, y: 26, width: 246, height: FLOOR + 6 - 26 };
+
+// The front view's pose is measured on the character's side view.
+const sidePivots = (character: CharacterId) =>
+  views[character] === 'front' ? pivotsOf(characterMarkup(character, 'side')) : undefined;
+
+// The slouched start, as rules for this frame: the movement's first frame,
+// from the same functions the player uses. The live frame shows it only while
+// motion is on and the player is starting or playing, until the player takes
+// over (data-driven); a neutral frame has none, so every joint keeps the
+// approved pose exactly. Not at rest, which is the neutral pose.
+const scope = live
+  ? `:root:is([data-intro='starting'], [data-intro='playing']):not([data-motion='reduce']) [data-ritual-frame='${id}']`
+  : `[data-ritual-frame='${id}']`;
+const startRules = characters.flatMap((character) =>
+  Object.entries(transformsAt(character, 0, sidePivots(character))).map(([joint, transform]) => {
+    const css = Object.entries(cssOf(transform)).filter(([, value]) => value);
+    const selector = `${scope} [data-character='${character}']${live ? ':not([data-driven])' : ''} .j-${joint}`;
+    return `${selector}{${css.map(([prop, value]) => `${prop}:${value}`).join(';')}}`;
+  }),
+);
+const rules = live
+  ? `@media (prefers-reduced-motion: no-preference){${startRules.join('\n')}}`
+  : pose === 'slouch'
+    ? startRules.join('\n')
+    : '';
+---
+
+<section
+  class:list={['ritual', `ritual--${variant}`, hero && 'ritual--hero']}
+  aria-labelledby={hero ? undefined : id}
+  data-ritual-frame={id}
+  data-ritual-live={live ? '' : undefined}
+>
+  {rules && <style is:inline set:html={rules} />}
+  {!hero && <button class="ritual__skip ui" type="button">{r.skip}</button>}
+
+  <svg
+    class="ritual__figures"
+    viewBox={`${VIEW.x} ${VIEW.y} ${VIEW.width} ${VIEW.height}`}
+    style={`aspect-ratio: ${VIEW.width} / ${VIEW.height}`}
+    role="img"
+    aria-label={r.figureLabel[live ? 'live' : pose]}
+  >
+    <line class="ritual__floor" x1={VIEW.x + 8} x2={VIEW.x + VIEW.width - 8} y1={FLOOR} y2={FLOOR} />
+    {
+      characters.map((character, i) => (
+        <g
+          class="ritual__character"
+          transform={i ? `translate(${GAP} 0)` : undefined}
+          data-character={character}
+          data-side-pivots={live && sidePivots(character) ? JSON.stringify(sidePivots(character)) : undefined}
+        >
+          <Character character={character} view={views[character]} />
+        </g>
+      ))
+    }
+  </svg>
+
+  <div class="ritual__text">
+    <h2 class:list={['ritual__title', variant === 'animated' && 'visually-hidden']} id={id}>
+      {r.title}
+    </h2>
+    {
+      variant === 'animated' && (
+        <p class:list={['ritual__cue', sentenceClass(sentence)]} aria-hidden="true">
+          {sentences[sentence]}
+        </p>
+      )
+    }
+    {
+      live && (
+        <p class="ritual__cue ritual__cues" aria-hidden="true">
+          {sentences.map((text, i) => (
+            <span class={sentenceClass(i)} data-sentence={i}>
+              {text}
+            </span>
+          ))}
+        </p>
+      )
+    }
+    <ol class:list={['ritual__list', variant === 'animated' && 'visually-hidden']} role="list">
+      {r.cues.map((text) => (
+        <li>{text}</li>
+      ))}
+    </ol>
+  </div>
+  <slot />
+</section>
+
+<style>
+  /* Phones: the figures above the text, both centred; the skip button in the
+     top corner, clear of the safe areas. Figure heights are custom
+     properties, so each layout sets both sizes in one place: --fig-h with one
+     cue, --fig-h-list with the list of every cue. */
+  .ritual {
+    --fig-h: clamp(15rem, 52svh, 27.5rem);
+    --fig-h-list: clamp(12.5rem, 40svh, 22.5rem);
+
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-4);
+    min-height: 100svh;
+    padding: calc(var(--tap-min) + var(--space-4)) var(--gutter) var(--space-5);
+    background: var(--color-bg);
+    text-align: center;
+  }
+
+  /* In a page's hero: as tall as its content, under the site header, with no
+     room kept for a skip button. */
+  .ritual--hero {
+    min-height: 0;
+    padding-top: var(--space-4);
+  }
+
+  .ritual__skip {
+    position: absolute;
+    top: max(var(--space-3), env(safe-area-inset-top));
+    right: max(var(--gutter), env(safe-area-inset-right));
+    min-width: var(--tap-min);
+    min-height: var(--tap-min);
+    padding-inline: var(--space-4);
+    border: 1px solid var(--color-rule);
+    border-radius: 999px;
+    background: var(--color-bg);
+    color: var(--color-text);
+    cursor: pointer;
+  }
+
+  .ritual__skip:hover {
+    border-color: var(--color-muted);
+  }
+
+  .ritual__figures {
+    display: block;
+    width: auto;
+    max-width: 100%;
+    height: var(--fig-h);
+  }
+
+  .ritual--static .ritual__figures,
+  .ritual--live .ritual__figures {
+    height: var(--fig-h-list);
+  }
+
+  .ritual__floor {
+    stroke: var(--color-rule);
+    stroke-width: 1.5;
+    stroke-linecap: round;
+  }
+
+  .ritual__text {
+    display: grid;
+    justify-items: center;
+    gap: var(--space-3);
+    width: 100%;
+    max-width: 24rem;
+  }
+
+  .ritual__title,
+  .ritual__cue--title {
+    font-size: clamp(1.75rem, 1.375rem + 1.667vw, 2.75rem);
+    font-weight: 300;
+    line-height: 1.15;
+    letter-spacing: var(--tracking-heading);
+  }
+
+  /* Two lines tall whatever the cue, so the layout doesn't shift when it
+     changes. */
+  .ritual__cue {
+    min-height: calc(2 * 1.3em);
+    font-size: clamp(1.25rem, 1.1rem + 0.667vw, 1.75rem);
+    line-height: 1.3;
+    text-wrap: balance;
+  }
+
+  /* The live cue line stacks every sentence in one cell; the player fades
+     them in and out, one at a time. Hidden (with the title and the list shown
+     instead) unless motion is on. */
+  .ritual__cues {
+    display: none;
+    grid-template-areas: 'cue';
+    align-items: start;
+  }
+
+  .ritual__cues > span {
+    grid-area: cue;
+    opacity: 0;
+  }
+
+  .ritual__list {
+    display: grid;
+    gap: var(--space-2);
+    margin: 0;
+    padding: 0;
+    font-size: clamp(1.125rem, 1.05rem + 0.333vw, 1.375rem);
+    line-height: 1.35;
+    list-style: none;
+  }
+
+  /* Wider screens: the figures beside the text, which is left-aligned. */
+  @media (min-width: 48rem) {
+    .ritual {
+      --fig-h: min(72svh, 35rem);
+      --fig-h-list: min(72svh, 35rem);
+
+      display: grid;
+      grid-template-columns: auto minmax(0, 24rem);
+      align-content: center;
+      justify-content: center;
+      column-gap: var(--space-6);
+      text-align: start;
+    }
+
+    .ritual__text {
+      justify-items: start;
+    }
+
+    /* In the hero: the cue stays centred beside the figures, with the slotted
+       menu in the row below it and the coming-soon text in a row of its own,
+       so neither moves the cue. */
+    .ritual--hero {
+      grid-template-rows: 1fr auto 1fr auto;
+    }
+
+    .ritual--hero .ritual__figures {
+      grid-row: 1 / 4;
+    }
+
+    .ritual--hero .ritual__text {
+      grid-row: 2;
+      grid-column: 2;
+    }
+  }
+
+  /* Phones held sideways: side by side too, the figures as tall as fits. */
+  @media (orientation: landscape) and (max-height: 32rem) {
+    .ritual {
+      --fig-h: 80svh;
+      --fig-h-list: 80svh;
+
+      display: grid;
+      grid-template-columns: auto minmax(0, 24rem);
+      align-content: center;
+      justify-content: center;
+      column-gap: var(--space-5);
+      padding-block: var(--space-3);
+      text-align: start;
+    }
+
+    .ritual__text {
+      justify-items: start;
+    }
+
+    /* In the hero: the cue stays centred beside the figures, with the slotted
+       menu in the row below it and the coming-soon text in a row of its own,
+       so neither moves the cue. */
+    .ritual--hero {
+      grid-template-rows: 1fr auto 1fr auto;
+    }
+
+    .ritual--hero .ritual__figures {
+      grid-row: 1 / 4;
+    }
+
+    .ritual--hero .ritual__text {
+      grid-row: 2;
+      grid-column: 2;
+    }
+  }
+
+  /* ---------- Live frame with motion on ---------- */
+
+  /* Motion allowed (not reduced in the system or with ?motion=reduce) and the
+     player starting (data-intro, set by the page's first script and removed
+     again if the player doesn't start): the slouched start (the frame's own
+     rules) until the player takes over, the cue line instead of the title and
+     the list, which stay for screen readers, and the figures at their one-cue
+     size.
+     At rest (data-intro="rest": the intro has completed in this tab, or the
+     player didn't start) the cue line shows the last cue, the neutral pose.
+     Without that attribute (no scripting, reduced motion, or the stop control
+     used) this is the reduced-motion version. */
+  @media (prefers-reduced-motion: no-preference) {
+    :root[data-intro]:not([data-motion='reduce']) .ritual--live .ritual__figures {
+      height: var(--fig-h);
+    }
+
+    :root[data-intro]:not([data-motion='reduce']) .ritual--live .ritual__cues {
+      display: grid;
+    }
+
+    :root[data-intro]:not([data-motion='reduce']) .ritual--live .ritual__title,
+    :root[data-intro]:not([data-motion='reduce']) .ritual--live .ritual__list {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      margin: -1px;
+      padding: 0;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    /* At rest without the player having run: the last cue, as the player
+       leaves it at the end. */
+    :root[data-intro='rest']:not([data-motion='reduce']) .ritual--live .ritual__cues > :last-child {
+      opacity: 1;
+    }
+  }
+</style>

@@ -1,0 +1,316 @@
+---
+// Development preview of the homepage intro (dev only), at /dev/home-intro/
+// and /en/dev/home-intro/, rendered by src/pages/dev/[prototype].astro and
+// src/pages/en/dev/[prototype].astro. It is the real page layout (BaseLayout
+// with the header and footer the homepage uses) around the intro, with a small
+// dev bar to switch frames.
+// - `#live` (plan steps 3–4): the whole scene, from the opening through the
+//   approved 0–16 s intro to the menu's reveal (../../components/home-intro/
+//   scene.ts), from the start whenever the frame is shown (not automatically
+//   with reduced motion), with dev controls: replay, pause, speed, a time
+//   scrubber and a readout.
+// - `#opening` and `#idle` (plan step 2): the still frames.
+// Since 2026-10-25 every frame shows the approved dot figure in place of the
+// character (`figure="dots"`; ../../components/home-intro/dotScene.ts). The
+// character version (./scene.ts) is unchanged: FIGURE = 'character' below
+// shows it again.
+// `menu="six"` (2026-10-29), at /dev/home-menu/ and /en/dev/home-menu/: the
+// same preview with the six-item ring menu (./SixItemMenu.astro) in place of
+// the homepage's one item; the intro and the scene are the same. Its
+// `#inspiration` frame plays the first menu scene, İlham / Inspiration: the
+// Reformer Hundred (./inspirationScene.ts), and its `#repertoire` frame the
+// Repertuar / Repertoire scene: the Cadillac Hanging Pull-Up
+// (./repertoireScene.ts), and its `#swan` frame the İlham / Inspiration
+// scene: the Chair Swan (./swanScene.ts, 2026-10-30), each on the menu's idle
+// frame, driven by the same dev bar; with reduced motion each shows its held
+// pose, still. Its `#loop` frame plays them in a loop (./loopScene.ts): IDLE →
+// Hundred → Hanging Pull-Up → Swan → Teaser → IDLE, for ever; with reduced motion
+// it shows IDLE, still. Its `#pose-7-prensip`, `#pose-contrology` and
+// `#pose-bedenin-dili` frames (2026-10-31) play the first concepts for the three
+// items with no pose yet (./poseConcepts.ts), one each, for review: not in the
+// loop, not on the homepage.
+import HomeIntro from '../../components/home-intro/HomeIntro.astro';
+import { homeMenu } from '../../config/home-menu';
+import type { Lang } from '../../i18n/ui';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import SixItemMenu from './SixItemMenu.astro';
+
+interface Props {
+  lang: Lang;
+  /** The ring's menu: the homepage's one item, or the six-item preview. */
+  menu?: 'one' | 'six';
+}
+
+const { lang, menu = 'one' } = Astro.props;
+const six = menu === 'six';
+/** The figure every frame shows: the approved dot figure, or the character (./scene.ts). */
+const FIGURE: 'character' | 'dots' = 'dots';
+const translations = six ? { tr: '/dev/home-menu/', en: '/en/dev/home-menu/' } : { tr: '/dev/home-intro/', en: '/en/dev/home-intro/' };
+const frames = [
+  { id: 'live', label: { tr: 'Canlı (girişten menüye)', en: 'Live (intro to menu)' } },
+  { id: 'opening', label: { tr: 'Açılış', en: 'Opening' } },
+  { id: 'idle', label: { tr: 'Menü (bekleme)', en: 'Menu idle' } },
+] as const;
+/** The six-item preview adds the menu scenes, each played on a menu idle frame of its own. */
+const shown = six
+  ? [
+      ...frames,
+      { id: 'inspiration', label: { tr: 'Sahne: İlham (Reformer Hundred)', en: 'Scene: Inspiration (Reformer Hundred)' } } as const,
+      { id: 'repertoire', label: { tr: 'Sahne: Repertuar (Cadillac, Hanging Pull-Up)', en: 'Scene: Repertoire (Cadillac, Hanging Pull-Up)' } } as const,
+      { id: 'swan', label: { tr: 'Sahne: İlham (Chair, Swan)', en: 'Scene: Inspiration (Chair, Swan)' } } as const,
+      { id: 'loop', label: { tr: 'Döngü: bekleme → Hundred → Hanging Pull-Up → Swan → Teaser', en: 'Loop: idle → Hundred → Hanging Pull-Up → Swan → Teaser' } } as const,
+      { id: 'pose-7-prensip', label: { tr: 'Poz taslağı: 7 Prensip', en: 'Pose concept: The 7 Principles' } } as const,
+      { id: 'pose-contrology', label: { tr: 'Poz taslağı: Contrology', en: 'Pose concept: Contrology' } } as const,
+      { id: 'pose-bedenin-dili', label: { tr: 'Poz taslağı: Bedenin Dili', en: 'Pose concept: The Language of the Body' } } as const,
+      { id: 'pose-up-stretch', label: { tr: 'Poz taslağı: Up Stretch (Reformer)', en: 'Pose concept: Up Stretch (Reformer)' } } as const,
+    ]
+  : frames;
+/** A scene's frame is the menu's idle frame. */
+const frameOf = (id: (typeof shown)[number]['id']) => (id === 'live' || id === 'opening' || id === 'idle' ? id : 'idle');
+const bar = {
+  tr: {
+    title: 'Geliştirme önizlemesi · Adım 4: girişten menüye geçiş',
+    note:
+      FIGURE === 'dots'
+        ? 'Figür: onaylı nokta figürü (70°: kambur → dikleşme → 45° yukarı uzanma → nefes al, ver → öne dönüş ve menü). Sayfadaki düğmeler henüz bağlı değil (Adım 8).'
+        : 'Sayfadaki düğmeler henüz bağlı değil (Adım 8). El, H1 çizilene kadar mevcut el (Adım 5).',
+    replay: 'Baştan oynat',
+    pause: 'Duraklat',
+    resume: 'Sürdür',
+    speed: 'Hız',
+    time: 'Zaman',
+    reduced: 'Azaltılmış hareket açık: otomatik oynatma kapalı (Adım 8).',
+  },
+  en: {
+    title: 'Dev preview · Step 4: the transition from intro to menu',
+    note:
+      FIGURE === 'dots'
+        ? 'Figure: the approved dot figure (70°: hunch → straighten → reach up at 45° → breathe in, out → the turn to the front and the menu). The page’s buttons are not wired yet (Step 8).'
+        : 'The page’s buttons are not wired yet (Step 8). The hand is the existing one until H1 is drawn (Step 5).',
+    replay: 'Replay',
+    pause: 'Pause',
+    resume: 'Resume',
+    speed: 'Speed',
+    time: 'Time',
+    reduced: 'Reduced motion is on: no autoplay (Step 8).',
+  },
+}[lang];
+if (six) {
+  bar.title = { tr: 'Geliştirme önizlemesi · Altı öğeli menü', en: 'Dev preview · The six-item menu' }[lang];
+  bar.note = {
+    tr: 'Giriş ve figür değişmedi. Menü öğeleri 7 Prensip → Contrology → Miras → Bedenin Dili → Repertuar → İlham sırasıyla belirir. Bölüm sayfaları henüz yok: bağlantıları 404 verir. Yalnızca önizleme; ana sayfa değişmedi.',
+    en: 'The intro and the figure are unchanged. The items fade in: The 7 Principles → Contrology → Legacy → The Language of the Body → Repertoire → Inspiration. The section pages don’t exist yet, so their links give a 404. Preview only; the homepage is unchanged.',
+  }[lang];
+}
+const speeds = [1, 0.5, 0.25];
+---
+
+<BaseLayout title={`${bar.title} (dev)`} translations={translations} lockup>
+  {
+    shown.map((frame, i) => (
+      <div data-preview-frame={frame.id} hidden={i > 0}>
+        {six ? (
+          <HomeIntro lang={lang} frame={frameOf(frame.id)} id={`preview-${frame.id}`} figure={FIGURE} menuHours={homeMenu.map((item) => item.hour)}>
+            <SixItemMenu slot="menu" lang={lang} />
+          </HomeIntro>
+        ) : (
+          <HomeIntro lang={lang} frame={frameOf(frame.id)} id={`preview-${frame.id}`} figure={FIGURE} />
+        )}
+      </div>
+    ))
+  }
+
+  <aside class="preview-bar ui" aria-label={bar.title} data-dev-only>
+    <p class="preview-bar__title">{bar.title}</p>
+    <div class="preview-bar__buttons">
+      {
+        shown.map((frame) => (
+          <button class="preview-bar__button" type="button" data-preview-show={frame.id}>
+            {frame.label[lang]}
+          </button>
+        ))
+      }
+    </div>
+    <div class="preview-bar__player" data-dev-player>
+      <div class="preview-bar__buttons">
+        <button class="preview-bar__button" type="button" data-dev-restart>{bar.replay}</button>
+        <button class="preview-bar__button" type="button" data-dev-pause data-pause={bar.pause} data-resume={bar.resume}>
+          {bar.pause}
+        </button>
+        <label class="preview-bar__field">
+          {bar.speed}
+          <select data-dev-speed>
+            {speeds.map((rate) => <option value={rate}>{rate}×</option>)}
+          </select>
+        </label>
+      </div>
+      <label class="preview-bar__field">
+        {bar.time}
+        <input type="range" min="0" max="30000" step="10" value="0" data-dev-time />
+        <span class="preview-bar__clock" data-dev-clock aria-hidden="true">0 ms</span>
+      </label>
+      <p class="preview-bar__note" data-dev-reduced hidden>{bar.reduced}</p>
+    </div>
+    <p class="preview-bar__note">{bar.note}</p>
+  </aside>
+</BaseLayout>
+
+<script>
+  import { createDotScene, drawStill } from '../../components/home-intro/dotScene';
+  import { createScene, type Scene } from '../../components/home-intro/scene';
+  import { createInspirationScene } from './inspirationScene';
+  import { createRepertoireScene } from './repertoireScene';
+  import { createSwanScene } from './swanScene';
+  import { createLoopScene } from './loopScene';
+  import { createBodyLanguageScene, createContrologyScene, createPrinciplesScene } from './poseConcepts';
+  import { createUpStretchScene } from './upStretchScene';
+
+  const frames = [...document.querySelectorAll<HTMLElement>('[data-preview-frame]')];
+  const buttons = [...document.querySelectorAll<HTMLButtonElement>('[data-preview-show]')];
+  const controls = document.querySelector<HTMLElement>('[data-dev-player]')!;
+  const restart = controls.querySelector<HTMLButtonElement>('[data-dev-restart]')!;
+  const pause = controls.querySelector<HTMLButtonElement>('[data-dev-pause]')!;
+  const speed = controls.querySelector<HTMLSelectElement>('[data-dev-speed]')!;
+  const time = controls.querySelector<HTMLInputElement>('[data-dev-time]')!;
+  const clock = controls.querySelector<HTMLElement>('[data-dev-clock]')!;
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  controls.querySelector<HTMLElement>('[data-dev-reduced]')!.hidden = !reduced;
+
+  const root = document.querySelector<HTMLElement>('[data-intro-live]')!;
+  const dots = root.dataset.introFigure === 'dots';
+  const player = dots ? createDotScene(root) : createScene(root);
+  if (dots) {
+    for (const id of ['opening', 'idle'] as const) {
+      drawStill(document.querySelector<HTMLElement>(`[data-preview-frame='${id}']`)!, id);
+    }
+  }
+  // The dev bar drives the frame being played: the live intro, or one of the six-item preview's menu scenes.
+  const scenes: Record<string, Scene> = { live: player };
+  const sceneFrame = (id: string) => document.querySelector<HTMLElement>(`[data-preview-frame='${id}']`);
+  for (const [id, create] of [
+    ['inspiration', createInspirationScene],
+    ['repertoire', createRepertoireScene],
+    ['swan', createSwanScene],
+    ['pose-7-prensip', createPrinciplesScene],
+    ['pose-contrology', createContrologyScene],
+    ['pose-bedenin-dili', createBodyLanguageScene],
+    ['pose-up-stretch', createUpStretchScene],
+    ['loop', (frame: HTMLElement) => createLoopScene(frame, undefined, { drift: new URLSearchParams(location.search).get('motion') === 'drift' })],
+  ] as const) {
+    const frame = sceneFrame(id);
+    if (frame) scenes[id] = create(frame);
+  }
+  let current = player;
+  for (const scene of Object.values(scenes))
+    scene.onUpdate = (ms) => {
+      if (scene !== current) return;
+      time.value = String(Math.round(ms));
+      clock.textContent = `${Math.round(ms)} ms`;
+      pause.textContent = scene.playing ? pause.dataset.pause! : pause.dataset.resume!;
+    };
+
+  restart.addEventListener('click', () => current.replay());
+  pause.addEventListener('click', () => (current.playing ? current.pause() : current.play()));
+  speed.addEventListener('change', () => {
+    for (const scene of Object.values(scenes)) scene.rate = Number(speed.value);
+  });
+  time.addEventListener('input', () => {
+    // Read the slider first: pausing reports the current time back to it.
+    const ms = Number(time.value);
+    current.pause();
+    current.seek(ms);
+  });
+
+  function show(id: string) {
+    if (!frames.some((frame) => frame.dataset.previewFrame === id)) id = 'live';
+    for (const frame of frames) frame.hidden = frame.dataset.previewFrame !== id;
+    for (const button of buttons) button.setAttribute('aria-pressed', String(button.dataset.previewShow === id));
+    controls.hidden = !(id in scenes);
+    history.replaceState(null, '', `#${id}`);
+    for (const scene of Object.values(scenes)) scene.pause();
+    current = scenes[id] ?? player;
+    time.max = String(current.duration);
+    if (id in scenes && !reduced) current.replay();
+    // Reduced motion: the scene's held pose, still.
+    else if (id in scenes && id !== 'live') current.seek(current.duration);
+  }
+
+  for (const button of buttons) button.addEventListener('click', () => show(button.dataset.previewShow!));
+  // A frame typed into the address bar on the open page (a hash change, no reload) is shown too.
+  addEventListener('hashchange', () => show(location.hash.slice(1)));
+  show(location.hash.slice(1));
+</script>
+
+<style>
+  .preview-bar {
+    position: fixed;
+    bottom: var(--space-3);
+    left: var(--space-3);
+    z-index: 10;
+    display: grid;
+    gap: var(--space-2);
+    max-width: 19rem;
+    padding: var(--space-3);
+    border: 1px solid var(--color-rule);
+    border-radius: 0.5rem;
+    background: var(--color-surface);
+    font-size: var(--text-small);
+  }
+
+  .preview-bar p {
+    margin: 0;
+  }
+
+  .preview-bar__note {
+    color: var(--color-muted);
+  }
+
+  .preview-bar__player {
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .preview-bar__player[hidden] {
+    display: none;
+  }
+
+  .preview-bar__buttons {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .preview-bar__button,
+  .preview-bar select {
+    min-height: 2rem;
+    padding-inline: var(--space-3);
+    border: 1px solid var(--color-rule);
+    border-radius: 999px;
+    background: var(--color-bg);
+    color: var(--color-text);
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .preview-bar__button[aria-pressed='true'] {
+    border-color: var(--color-text);
+  }
+
+  .preview-bar__field {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .preview-bar__field input {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .preview-bar__clock {
+    min-width: 4.5rem;
+    font-variant-numeric: tabular-nums;
+    text-align: end;
+  }
+</style>

@@ -1,0 +1,612 @@
+---
+// Temporary character sheet (dev only), one per character: the character from
+// the front and the side on one shared head-unit grid, its segmented torso and
+// spine, the spinal regions, the neutral standing pose, the face close-ups and
+// its measured proportions, for review before any animation work. Rendered by
+// src/pages/dev/[prototype].astro and src/pages/en/dev/[prototype].astro at
+// /dev/posture-sheet/ (male) and /dev/posture-sheet-female/ (female), and the
+// same under /en/. A link at the top switches between the two characters. No
+// client-side JavaScript.
+import '../../styles/fonts.css';
+import '../../styles/tokens.css';
+import '../../styles/global.css';
+import brand from '../../config/brand.json';
+import type { Lang } from '../../i18n/ui';
+import { otherLang, t } from '../../i18n/utils';
+import Character from '../../components/ritual/Character.astro';
+import { designs } from '../../components/ritual/characters';
+import { copy, prototypePaths, sheetPaths } from './copy';
+import { proportionsOf, sideLayout } from '../../components/ritual/body';
+import { CX, TOP, U, characters, heads, landmarks, pelvis, y, type CharacterId } from '../../components/ritual/proportions';
+
+interface Props {
+  lang: Lang;
+  character: CharacterId;
+}
+
+const { lang, character } = Astro.props;
+const c = copy[lang].sheet;
+const other = otherLang(lang);
+const design = designs[character];
+const layout = sideLayout(character);
+const heights = { ...y, chin: design.chin, fingertips: design.fingertips };
+
+// Sheet layout in viewBox units: the two views side by side, the head-unit
+// scale on the left and the landmark names on the right.
+const FRONT_X = 175;
+const SIDE_X = 425;
+const GRID = { from: 44, to: 556 };
+const units = Array.from({ length: 9 }, (_, i) => i);
+
+// Torso close-ups: crops of the 300 × 460 figure around the torso.
+const TORSO = { top: 70, height: 206 };
+const mid = (a: number, b: number) => (a + b) / 2;
+const segmentLabel = (id: string) => id.toUpperCase().replace('-', '–');
+const LABEL_X = 202;
+
+const measured = proportionsOf(character, U);
+const number = (n: number) => n.toLocaleString(lang === 'tr' ? 'tr-TR' : 'en-GB', { maximumFractionDigits: 2, minimumFractionDigits: 2 });
+const measures = [
+  { label: c.measures.height, value: c.heads('8') },
+  { label: c.measures.shoulders, value: c.heads(number(measured.shoulders)) },
+  { label: c.measures.waist, value: c.heads(number(measured.waist)) },
+  { label: c.measures.hips, value: c.heads(number(measured.hips)) },
+];
+---
+
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>{`${c.characters[character]} · ${c.metaTitle}`}</title>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">{t(lang).skipToContent}</a>
+
+    <header class="top container">
+      <a class="top__mark" href={prototypePaths[lang]}>{brand.name}</a>
+      <nav class="top__links ui" aria-label={t(lang).mainNav}>
+        <a class="top__link" href={prototypePaths[lang]}>{c.backLink}</a>
+        <a class="top__link" href={sheetPaths[character][other]} lang={other} hreflang={other}>{copy[lang].languageLink}</a>
+      </nav>
+    </header>
+
+    <main id="main" class="sheet container" tabindex="-1">
+      <div class="sheet__head">
+        <h1 class="sheet__title">{c.title}</h1>
+        <p class="sheet__intro">{c.intro}</p>
+        <nav class="switch ui" aria-label={c.characterNav}>
+          <span class="switch__label" aria-hidden="true">{c.characterNav}</span>
+          {
+            characters.map((id) => (
+              <a class="switch__link" href={sheetPaths[id][lang]} aria-current={id === character ? 'page' : undefined}>
+                {c.characters[id]}
+              </a>
+            ))
+          }
+        </nav>
+      </div>
+
+      <section class="block" aria-labelledby="views-title">
+        <h2 class="sheet__h2" id="views-title">{c.viewsTitle}</h2>
+        <div class="sheet__scroll">
+          <svg class="sheet__views" viewBox="0 0 700 466" role="img" aria-label={c.figureLabel[character]}>
+            <text class="sheet__view" x={FRONT_X} y="14">{c.front}</text>
+            <text class="sheet__view" x={SIDE_X} y="14">{c.side}</text>
+
+            {
+              units.map((h) => (
+                <>
+                  <line class="sheet__grid" x1={GRID.from} x2={GRID.to} y1={heads(h)} y2={heads(h)} />
+                  <text class="sheet__unit" x={GRID.from - 10} y={heads(h)} dy="0.35em">
+                    {8 - h}
+                  </text>
+                </>
+              ))
+            }
+            {
+              landmarks.map((key) => (
+                <>
+                  <line class="sheet__mark" x1={GRID.from} x2={GRID.to} y1={heights[key]} y2={heights[key]} />
+                  <text class="sheet__label" x={GRID.to + 10} y={heights[key]} dy="0.35em">
+                    {c.landmarks[key]}
+                  </text>
+                </>
+              ))
+            }
+            <line class="sheet__axis" x1={FRONT_X} x2={FRONT_X} y1={TOP - 12} y2={heads(8) + 8} />
+            <line class="sheet__axis" x1={SIDE_X} x2={SIDE_X} y1={TOP - 12} y2={heads(8) + 8} />
+
+            <g transform={`translate(${FRONT_X - CX} 0)`}>
+              <Character character={character} view="front" />
+            </g>
+            <g transform={`translate(${SIDE_X - CX} 0)`}>
+              <Character character={character} view="side" />
+            </g>
+          </svg>
+        </div>
+      </section>
+
+      <section class="block" aria-labelledby="torso-title">
+        <h2 class="sheet__h2" id="torso-title">{c.torsoTitle}</h2>
+        <p class="block__intro">{c.torsoIntro}</p>
+        <div class="panels">
+          <figure class="panel">
+            <svg class="panel__svg" viewBox={`86 ${TORSO.top} 128 ${TORSO.height}`} role="img" aria-label={c.constructionLabel}>
+              <Character character={character} view="front" mode="construction" />
+            </svg>
+            <figcaption class="panel__caption ui">{c.constructionFront}</figcaption>
+          </figure>
+
+          <figure class="panel">
+            <svg class="panel__svg" viewBox={`116 ${TORSO.top} 128 ${TORSO.height}`} role="img" aria-label={c.constructionLabel}>
+              <Character character={character} view="side" mode="construction" />
+              {
+                [...layout.segments.map((seg) => ({ at: mid(seg.top, seg.bottom), label: segmentLabel(seg.id) })), { at: mid(pelvis.top, pelvis.bottom), label: c.regions.pelvis }].map(
+                  ({ at, label }) => (
+                    <>
+                      <line class="panel__leader" x1={layout.front(at) - 5} x2={LABEL_X - 2} y1={at} y2={at} />
+                      <circle class="panel__dot" cx={layout.front(at) - 5} cy={at} r="0.9" />
+                      <text class="panel__label" x={LABEL_X} y={at} dy="0.35em">
+                        {label}
+                      </text>
+                    </>
+                  ),
+                )
+              }
+            </svg>
+            <figcaption class="panel__caption ui">{c.constructionSide}</figcaption>
+          </figure>
+
+          <figure class="panel">
+            <svg class="panel__svg" viewBox={`116 ${TORSO.top} 128 ${TORSO.height}`} role="img" aria-label={c.regionsLabel}>
+              <Character character={character} view="side" mode="regions" />
+              {
+                layout.regions.map((region) => {
+                  const at = mid(region.top, region.bottom);
+                  return (
+                    <>
+                      <line class="panel__leader" x1={layout.front(at) - 5} x2={LABEL_X - 2} y1={at} y2={at} />
+                      <circle class="panel__dot" cx={layout.front(at) - 5} cy={at} r="0.9" />
+                      <text class="panel__label" x={LABEL_X} y={at} dy="0.35em">
+                        {c.regions[region.region]}
+                      </text>
+                    </>
+                  );
+                })
+              }
+            </svg>
+            <figcaption class="panel__caption ui">{c.regionsTitle}</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section class="block" aria-labelledby="neutral-title">
+        <h2 class="sheet__h2" id="neutral-title">{c.neutralTitle}</h2>
+        <p class="block__intro">{c.neutralIntro}</p>
+        <div class="stage">
+          <svg class="stage__figure" viewBox="70 22 160 424" role="img" aria-label={c.neutralLabel}>
+            <Character character={character} view="front" />
+          </svg>
+        </div>
+      </section>
+
+      <div class="pair">
+        <section class="block" aria-labelledby="face-title">
+          <h2 class="sheet__h2" id="face-title">{c.faceTitle}</h2>
+          <div class="face__views" role="img" aria-label={c.faceLabel[character]}>
+            <svg class="face__view" viewBox={`${CX - 37} 24 74 78`} aria-hidden="true">
+              <Character character={character} view="front" />
+            </svg>
+            <svg class="face__view" viewBox="118 24 78 78" aria-hidden="true">
+              <Character character={character} view="side" />
+            </svg>
+          </div>
+        </section>
+
+        <section class="block" aria-labelledby="proportions-title">
+          <h2 class="sheet__h2" id="proportions-title">{c.proportionsTitle}</h2>
+          <div class="measure">
+            <svg class="measure__figure" viewBox="88 22 124 424" role="img" aria-label={c.proportionsLabel}>
+              <line class="measure__bracket" x1="210" x2="210" y1={TOP} y2={heads(8)} />
+              <line class="measure__bracket" x1="206" x2="210" y1={TOP} y2={TOP} />
+              <line class="measure__bracket" x1="206" x2="210" y1={heads(8)} y2={heads(8)} />
+              <Character character={character} view="front" />
+            </svg>
+            <dl class="measure__list">
+              {
+                measures.map((m) => (
+                  <div class="measure__row">
+                    <dt>{m.label}</dt>
+                    <dd>{m.value}</dd>
+                  </div>
+                ))
+              }
+            </dl>
+          </div>
+        </section>
+      </div>
+
+      <div class="notes">
+        <section aria-labelledby="notes-title">
+          <h2 class="sheet__h2" id="notes-title">{c.notesTitle}</h2>
+          <ul class="notes__list" role="list">
+            {c.notes.map((note) => <li>{note}</li>)}
+          </ul>
+        </section>
+        <section aria-labelledby="review-title">
+          <h2 class="sheet__h2" id="review-title">{c.reviewTitle}</h2>
+          <ul class="notes__list" role="list">
+            {c.review.map((item) => <li>{item}</li>)}
+          </ul>
+        </section>
+      </div>
+    </main>
+
+    <footer class="foot container ui">
+      <span>{brand.name}</span>
+      <span data-dev-only>{copy[lang].devNote}</span>
+    </footer>
+  </body>
+</html>
+
+<style>
+  .top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2) var(--space-4);
+    padding-block: var(--space-3);
+  }
+
+  .top__mark {
+    color: var(--color-text);
+    font-size: 1.5rem;
+    letter-spacing: -0.015em;
+    text-decoration: none;
+  }
+
+  .top__links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-4);
+  }
+
+  .top__link {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap-min);
+    color: var(--color-text);
+    text-decoration: none;
+  }
+
+  .top__link:hover {
+    text-decoration-line: underline;
+  }
+
+  /* Single minmax(0, 1fr) columns, so a wide child scrolls inside its own box
+     instead of widening the page. */
+  .sheet {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-6);
+    padding-block: var(--space-4) var(--space-6);
+  }
+
+  .sheet__head {
+    display: grid;
+    gap: var(--space-3);
+    max-width: var(--measure);
+  }
+
+  .sheet__title {
+    font-size: var(--text-h2);
+    font-weight: 300;
+    letter-spacing: var(--tracking-heading);
+  }
+
+  .sheet__intro {
+    color: var(--color-muted);
+    font-size: var(--text-lead);
+  }
+
+  .sheet__h2 {
+    font-size: var(--text-card);
+    font-weight: 400;
+  }
+
+  /* ---------- Character switch ---------- */
+
+  .switch {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .switch__label {
+    margin-inline-end: var(--space-2);
+    color: var(--color-muted);
+  }
+
+  .switch__link {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap-min);
+    padding-inline: var(--space-3);
+    border: 1px solid var(--color-rule);
+    border-radius: 999px;
+    color: var(--color-text);
+    text-decoration: none;
+  }
+
+  .switch__link:hover {
+    border-color: var(--color-muted);
+  }
+
+  .switch__link[aria-current='page'] {
+    border-color: var(--color-text);
+    background: var(--color-text);
+    color: var(--color-bg);
+  }
+
+  .block {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start;
+    gap: var(--space-4);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--color-rule);
+  }
+
+  .block__intro {
+    max-width: var(--measure);
+    color: var(--color-muted);
+  }
+
+  /* ---------- Front and side on the grid ---------- */
+
+  /* The views stay legible on phones by scrolling sideways. */
+  .sheet__scroll {
+    overflow-x: auto;
+  }
+
+  .sheet__views {
+    display: block;
+    width: 100%;
+    min-width: 38rem;
+    max-width: 56rem;
+    height: auto;
+  }
+
+  .sheet__views text,
+  .panel__svg text {
+    font-family: var(--font-sans);
+    font-weight: 500;
+  }
+
+  .sheet__view {
+    fill: var(--color-text);
+    font-size: 13px;
+    text-anchor: middle;
+  }
+
+  .sheet__unit {
+    fill: var(--color-muted);
+    font-size: 11px;
+    text-anchor: end;
+  }
+
+  .sheet__label {
+    fill: var(--color-accent);
+    font-size: 11px;
+  }
+
+  .sheet__grid {
+    stroke: var(--color-rule);
+    stroke-width: 1;
+  }
+
+  .sheet__mark {
+    stroke: var(--color-accent);
+    stroke-width: 0.75;
+    stroke-dasharray: 1 4;
+    stroke-linecap: round;
+  }
+
+  .sheet__axis {
+    stroke: var(--color-accent);
+    stroke-width: 0.75;
+    stroke-dasharray: 3 4;
+    opacity: 0.6;
+  }
+
+  /* ---------- Torso close-ups ---------- */
+
+  .panels {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+    gap: var(--space-4);
+    max-width: 64rem;
+  }
+
+  .panel {
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .panel__svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    background: var(--color-surface);
+  }
+
+  .panel__caption {
+    color: var(--color-muted);
+  }
+
+  .panel__label {
+    fill: var(--color-text);
+    font-size: 4.6px;
+  }
+
+  .panel__leader {
+    stroke: var(--color-muted);
+    stroke-width: 0.35;
+  }
+
+  .panel__dot {
+    fill: var(--color-text);
+  }
+
+  /* ---------- Neutral pose: the hero's ring and disc, without guides ---------- */
+
+  .stage {
+    position: relative;
+    width: min(100%, 22rem);
+    aspect-ratio: 1;
+  }
+
+  .stage::before,
+  .stage::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+  }
+
+  .stage::before {
+    inset: 0;
+    border: 1px solid var(--color-rule);
+  }
+
+  .stage::after {
+    inset: 16%;
+    background: var(--color-panel);
+    opacity: 0.6;
+  }
+
+  .stage__figure {
+    position: absolute;
+    z-index: 1;
+    top: 5%;
+    left: 50%;
+    height: 90%;
+    width: auto;
+    translate: -50% 0;
+  }
+
+  /* ---------- Face and proportions ---------- */
+
+  .pair {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-6);
+  }
+
+  .face__views {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+  }
+
+  .face__view {
+    display: block;
+    width: min(100%, 15rem);
+    height: auto;
+    background: var(--color-surface);
+  }
+
+  .measure {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-4);
+  }
+
+  .measure__figure {
+    display: block;
+    width: 7rem;
+    height: auto;
+    background: var(--color-surface);
+  }
+
+  .measure__bracket {
+    stroke: var(--color-muted);
+    stroke-width: 0.8;
+  }
+
+  .measure__list {
+    display: grid;
+    gap: var(--space-3);
+    margin: 0;
+  }
+
+  .measure__row {
+    display: grid;
+    grid-template-columns: 10rem auto;
+    gap: var(--space-3);
+  }
+
+  .measure__row dt {
+    color: var(--color-muted);
+  }
+
+  .measure__row dd {
+    margin: 0;
+  }
+
+  @media (min-width: 64rem) {
+    .pair {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  /* ---------- Notes ---------- */
+
+  .notes {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-5);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--color-rule);
+  }
+
+  .notes section {
+    display: grid;
+    align-content: start;
+    gap: var(--space-3);
+  }
+
+  .notes__list {
+    display: grid;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    max-width: var(--measure);
+  }
+
+  .notes__list li {
+    padding-block: var(--space-2);
+    border-top: 1px solid var(--color-rule);
+    color: var(--color-muted);
+  }
+
+  @media (min-width: 64rem) {
+    .notes {
+      grid-template-columns: 3fr 2fr;
+    }
+  }
+
+  .foot {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--space-2) var(--space-4);
+    padding-block: var(--space-5);
+    color: var(--color-muted);
+  }
+</style>

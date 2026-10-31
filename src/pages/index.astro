@@ -1,7 +1,6 @@
 ---
 // Temporary coming-soon page. The original homepage is at /dev/home/ (development only).
 import ComingSoon from '../components/ComingSoon.astro';
-import brand from '../config/brand.json';
 import comingSoon from '../config/coming-soon.json';
 import BaseLayout from '../layouts/BaseLayout.astro';
 
@@ -9,6 +8,6 @@ const copy = comingSoon.tr;
 const translations = { tr: '/', en: '/en/' };
 ---
 
-<BaseLayout title={`${brand.name} · ${copy.title}`} description={copy.metaDescription} translations={translations} lockup ritual>
+<BaseLayout title={copy.title} description={copy.metaDescription} translations={translations} lockup ritual>
   <ComingSoon lang="tr" />
 </BaseLayout>

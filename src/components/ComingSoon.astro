@@ -8,7 +8,12 @@
 // two-character welcome ritual (ritual/WelcomeRitual.astro) is no longer used
 // here and stays on disk. The original homepage (home/HomePage.astro) is
 // unchanged and previewable in development at /dev/home/ and /en/dev/home/.
+// The ring carries the approved six-item menu (owner, 2026-10-30; the dev
+// preview's, ../prototypes/home-intro/SixItemMenu.astro), and once the intro
+// has ended the menu's loop plays on (homepage.ts).
+import { homeMenu } from '../config/home-menu';
 import type { Lang } from '../i18n/ui';
+import SixItemMenu from '../prototypes/home-intro/SixItemMenu.astro';
 import HomeIntro from './home-intro/HomeIntro.astro';
 
 interface Props {
@@ -18,7 +23,9 @@ interface Props {
 const { lang } = Astro.props;
 ---
 
-<HomeIntro lang={lang} frame="live" id="home-intro" figure="dots" homepage />
+<HomeIntro lang={lang} frame="live" id="home-intro" figure="dots" homepage menuHours={homeMenu.map((item) => item.hour)}>
+  <SixItemMenu slot="menu" lang={lang} homepage />
+</HomeIntro>
 
 <script>
   import { startHomepageIntro } from './home-intro/homepage';

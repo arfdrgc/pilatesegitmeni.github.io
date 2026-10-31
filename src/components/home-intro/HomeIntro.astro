@@ -1,6 +1,7 @@
 ---
 // The homepage intro (handoff note, 2026-10-23): one female character inside
-// a ring, the text below it and the controls below the text. Frames:
+// a ring, the text below it, and the controls on the ring (see "Controls" in
+// the styles). Frames:
 // - `opening` (plan step 2): the first frame, still. Side view, slouched,
 //   waist-up inside the circle, everything below the waist line hidden; the
 //   title below.
@@ -12,8 +13,7 @@
 // - `idle` (plan step 2): the menu, still. Front view, full body, hands on
 //   hips (the existing hanging hand stands in for the approved H1 hand); the
 //   ring's real items (Instagram at 5 o'clock); the slogan as the page's
-//   heading and Replay below it (owner, 2026-10-26: in place of the
-//   coming-soon line).
+//   heading.
 // The slogan is the page's <h1> in every frame, transparent until it is shown
 // (never hidden from screen readers). The controls are wired only on the
 // homepage (`homepage`, below); on the dev preview they do nothing.
@@ -26,8 +26,7 @@
 // is never shown below it). The motto is set apart from the cues: italic, in quotation marks.
 // `homepage` (plan step 10, / and /en/ through ../ComingSoon.astro): the live
 // frame follows the page's intro state (data-intro on <html>) and is played
-// by ./homepage.ts, with the stop control below the text and Replay under the
-// slogan; see "On the homepage" in the styles.
+// by ./homepage.ts; see "On the homepage" in the styles.
 import InstagramLink from '../InstagramLink.astro';
 import { homeIntro } from '../../config/home-intro';
 import { ritual } from '../../config/ritual';
@@ -46,9 +45,15 @@ interface Props {
   figure?: 'character' | 'dots';
   /** The live frame on the homepage, played by ./homepage.ts; see the note at the top. */
   homepage?: boolean;
+  /**
+   * The hours of a menu given in the `menu` slot, which then takes the place
+   * of the ring's items (the six-item development preview, 2026-10-29):
+   * they choose the phone tier, as the items' do.
+   */
+  menuHours?: number[];
 }
 
-const { lang, frame, id, figure = 'character', homepage = false } = Astro.props;
+const { lang, frame, id, figure = 'character', homepage = false, menuHours } = Astro.props;
 const dots = figure === 'dots';
 const copy = homeIntro[lang];
 const live = frame === 'live';
@@ -91,7 +96,7 @@ const items = [{ hour: 5, side: 'end' as const }].map((item) => {
  * then keep a column for its label, and the ring steps down to its second
  * size (plan step 9, tier B). Decided by the content, never while the page is open.
  */
-const sideLabels = items.some((item) => item.hour === 9 || item.hour === 3);
+const sideLabels = (menuHours ?? items.map((item) => item.hour)).some((hour) => hour === 9 || hour === 3);
 
 // The slogan breaks after its comma on narrow screens.
 const [sloganA, sloganB] = copy.slogan.split(/(?<=,)\s/);
@@ -111,8 +116,24 @@ const wipes = [
   data-intro-figure={figure}
   data-intro-homepage={homepage ? '' : undefined}
   aria-labelledby={`${id}-heading`}
+  style={`--line-up:${((STAGE - lineY) / STAGE).toFixed(4)};--neighbour-up:${((lineY - ringPoint(4.5).y) / STAGE).toFixed(4)}`}
 >
   <style is:inline set:html={rules.join('\n')}></style>
+
+  {
+    homepage && (
+      <button class="intro__action intro__halt" type="button" aria-label={copy.stop} data-intro-halt>
+        <span class="intro__face">
+          <svg class="intro__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <rect x="6" y="6" width="12" height="12" rx="1.5" fill="currentColor" />
+          </svg>
+        </span>
+        <span class="intro__tip" aria-hidden="true">
+          {copy.stop}
+        </span>
+      </button>
+    )
+  }
 
   <div class="intro__stage">
     <svg class="intro__svg" viewBox={`0 0 ${STAGE} ${STAGE}`} aria-hidden="true" focusable="false">
@@ -169,22 +190,25 @@ const wipes = [
     {dots && <canvas class="intro__dots" aria-hidden="true" data-dot-figure />}
 
     {
-      front && (
-        <nav class="intro__menu ui" aria-label={ritual[lang].menuLabel}>
-          <ul class="intro__items" role="list">
-            {items.map((item) => (
-              <li
-                class:list={['intro__item', `intro__item--${item.side}`]}
-                style={`left:${item.left.toFixed(2)}%;top:${item.top.toFixed(2)}%`}
-                data-intro-item
-              >
-                <span class="intro__dot" aria-hidden="true" />
-                <InstagramLink class="intro__link" />
-              </li>
-            ))}
-          </ul>
-        </nav>
-      )
+      front &&
+        (Astro.slots.has('menu') ? (
+          <slot name="menu" />
+        ) : (
+          <nav class="intro__menu ui" aria-label={ritual[lang].menuLabel}>
+            <ul class="intro__items" role="list">
+              {items.map((item) => (
+                <li
+                  class:list={['intro__item', `intro__item--${item.side}`]}
+                  style={`left:${item.left.toFixed(2)}%;top:${item.top.toFixed(2)}%`}
+                  data-intro-item
+                >
+                  <span class="intro__dot" aria-hidden="true" />
+                  <InstagramLink class="intro__link" />
+                </li>
+              ))}
+            </ul>
+          </nav>
+        ))
     }
   </div>
 
@@ -232,12 +256,6 @@ const wipes = [
         }
       </h1>
     </div>
-    <button class="intro__action intro__replay" type="button" aria-describedby={`${id}-replay-hint`} data-intro-replay>
-      {copy.replay}
-    </button>
-    <span id={`${id}-replay-hint`} hidden>
-      {copy.replayLabel}
-    </span>
     {
       live && (
         <div class="visually-hidden">
@@ -253,32 +271,75 @@ const wipes = [
   </div>
 
   <div class="intro__controls ui">
-    {
-      side && (
-        <button class="intro__action" type="button" data-intro-stop>
-          {copy.stop}
-        </button>
-      )
-    }
+    <div class="intro__group" style={`top:${(lineY / STAGE) * 100}%`}>
+      {
+        side && (
+          <button class="intro__action intro__toggle" type="button" aria-label={copy.loop} aria-pressed="true" data-intro-stop>
+            <span class="intro__face">
+              <svg class="intro__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                <path d="M12 12c-2-2.67-4-4-6-4a4 4 0 1 0 0 8c2 0 4-1.33 6-4Zm0 0c2 2.67 4 4 6 4a4 4 0 1 0 0-8c-2 0-4 1.33-6 4Z" />
+              </svg>
+            </span>
+            <span class="intro__tip" aria-hidden="true">
+              <span class="intro__tip-on">{copy.loopOn}</span>
+              <span class="intro__tip-off">{copy.loopOff}</span>
+            </span>
+          </button>
+        )
+      }
+      <button class="intro__action intro__replay" type="button" aria-label={copy.replay} aria-describedby={`${id}-replay-hint`} data-intro-replay>
+        <span class="intro__face">
+          <svg class="intro__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
+            <path d="M3 3v5h5" />
+          </svg>
+        </span>
+        <span class="intro__tip" aria-hidden="true">{copy.replayLabel}</span>
+      </button>
+      <span id={`${id}-replay-hint`} hidden>
+        {copy.replayLabel}
+      </span>
+    </div>
   </div>
 </section>
 
 <style>
-  /* Centred, top to bottom: the ring with the figure, the text, the controls.
-     The ring is as large as the screen allows: at most the height left once
-     the header (about 10.3rem on desktop, measured), the text, the controls
-     and the gaps are counted (22rem in all), so everything above the footer
-     fits a 768px-tall laptop screen; at most the width left beside room for
-     the labels; and at most 36rem. Phones held upright: see below. */
+  /* Centred, top to bottom: the ring with the figure, the text. The controls
+     lie over the ring. The ring is as large as the screen allows: at most the
+     height left once the header (about 10.3rem on desktop, measured), the text
+     and the gaps are counted (22rem in all, which still includes the row the
+     controls had until 2026-10-31, so the ring and the menu stay exactly where
+     they are); at most the width left beside room for the labels; and at most
+     36rem. Phones held upright: see below. */
   .intro {
     --ring-desktop: min(calc(100svh - 22rem), calc(100vw - 2 * var(--gutter) - 2 * 6rem), 36rem);
     --ring: var(--ring-desktop);
 
+    /* The controls' faces, and how far their centres sit below the line: just
+       under it, so they don't cover her feet, which stand on it at the ring's
+       centre; on small rings further, so their tap targets stay 2px clear of the
+       links at half past 4 and half past 7 (each as tall as its icon or the tap
+       target, whichever is more, about its hour). */
+    --control: 2.25rem;
+    --control-drop: max(
+      calc(var(--control) / 2 + var(--space-2)),
+      calc(var(--tap-min) / 2 + max(var(--tap-min), var(--mark, 0px)) / 2 + 2px - var(--neighbour-up) * var(--ring))
+    );
+    /* The text's extra distance from the ring, once the controls reach it (small rings only). */
+    --text-clear: max(0px, calc(var(--control-drop) + var(--control) / 2 + var(--space-1) - var(--line-up) * var(--ring) - var(--space-3)));
+
+    position: relative;
     display: grid;
     justify-items: center;
     gap: var(--space-3);
     padding-block: var(--space-3) var(--space-4);
     text-align: center;
+  }
+
+  /* The stage and the controls share one cell. */
+  .intro__stage,
+  .intro__controls {
+    grid-area: 1 / 1;
   }
 
   /* Phones held upright (plan step 9, the approved phone layout): the same
@@ -294,26 +355,23 @@ const wipes = [
        page scrolls.
      The height left: 100svh (so the browser's bars can't push the ring's
      items off screen) less the header (107px measured at 375px wide), the
-     intro's top padding and its two gaps (3rem), the text slot (6rem) and the
-     controls (2.75rem): 18.5rem in all, so everything above the footer fits
-     375 × 548. Never smaller than the desktop sizes would be (wider phones
+     intro's top padding and its two gaps (3rem), and the text and the old
+     controls row (8.75rem, kept so the ring stays where it is): 18.5rem in
+     all. Never smaller than the desktop sizes would be (wider phones
      and small tablets in portrait keep those). */
   @media (max-width: 47.99rem) and (orientation: portrait) {
     .intro {
       --ring-phone: max(184px, min(0.82 * (100vw - 2 * var(--gutter)), calc(100svh - 18.5rem), 300px));
       --ring: max(var(--ring-desktop), var(--ring-phone));
+      --control: 2rem;
     }
 
     .intro--side-labels {
       --ring-phone: max(184px, min(calc(100vw - 2 * var(--gutter) - 2 * 72px), calc(100svh - 18.5rem)));
     }
 
-    /* A fixed text slot: room for two lines of the slogan and Replay
-       under it (94px measured, with the coming-soon line it replaced), so
-       the controls never move when the text changes. Kept inside the page's gutter. (Under
-       .intro: the base rule comes later.) */
+    /* Kept inside the page's gutter. (Under .intro: the base rule comes later.) */
     .intro .intro__text {
-      min-height: 6rem;
       padding-inline: var(--gutter);
     }
 
@@ -327,8 +385,8 @@ const wipes = [
 
   /* Phones held sideways (plan step 9, the approved side column): below
      32rem of height the stack would leave the ring a few pixels tall, so the
-     text and the controls move into a column beside it, centred on it, as on
-     desktop otherwise. Up to 60rem wide (the widest phones are about 58rem),
+     text moves into a column beside it, centred on it, as on desktop
+     otherwise; the controls stay on the ring. Up to 60rem wide (the widest phones are about 58rem),
      so tablets and desktops keep their layout.
      - The ring: as tall as the screen allows under the header, its top
        padding (1rem) and 0.5rem below it, so the ring and its labels stay on
@@ -338,8 +396,7 @@ const wipes = [
      - --header mirrors SiteHeader.astro: its padding (2.5rem, 4rem from
        48rem), the lockup at clamp(10.5rem, 6.5rem + 11vw, 16rem) wide and
        271.22 × 104 (both languages), and the 3px rule. Change both together.
-     - The text slot keeps its fixed 6rem and the slogan breaks after its
-       comma, as on phones held upright, so the controls never move.
+     - The slogan breaks after its comma, as on phones held upright.
      Notches: the viewport meta has no viewport-fit=cover, so browsers keep
      the page clear of them themselves. */
   @media (orientation: landscape) and (max-height: 32rem) and (max-width: 60rem) {
@@ -351,8 +408,11 @@ const wipes = [
         min(calc(100svh - var(--header) - 1.5rem), calc(100vw - 2 * var(--gutter) - 2 * var(--label-room) - var(--space-5) - 12rem))
       );
 
+      --control: 2rem;
+      --text-clear: 0px;
+
       grid-template-columns: auto minmax(0, 20rem);
-      grid-template-rows: 1fr auto auto 1fr;
+      grid-template-rows: 1fr auto 1fr;
       justify-content: center;
       column-gap: var(--space-5);
       padding-inline: var(--gutter);
@@ -362,20 +422,20 @@ const wipes = [
       --label-room: 72px;
     }
 
-    .intro__stage {
-      grid-row: 1 / -1;
+    .intro__stage,
+    .intro__controls {
+      grid-area: 1 / 1 / -1 / 2;
       margin-inline: var(--label-room);
     }
 
     .intro .intro__text {
       grid-row: 2;
       grid-column: 2;
-      min-height: 6rem;
     }
 
-    .intro__controls {
-      grid-row: 3;
-      grid-column: 2;
+    /* The tooltip stays narrow here, so it adds no sideways scroll. */
+    .intro .intro__tip {
+      max-width: 12rem;
     }
 
     .intro .intro__slogan > span {
@@ -496,15 +556,14 @@ const wipes = [
 
   /* ---------- Text ---------- */
 
-  /* Room for two lines of a cue, or the slogan and Replay, so
-     nothing below moves when the text changes. The title, the cues and the
-     slogan share one cell. */
+  /* The title, the cues and the slogan share one cell, as tall as the tallest
+     of them, so nothing below moves when the text changes. */
   .intro__text {
     display: grid;
     align-content: start;
     justify-items: center;
     gap: var(--space-2);
-    min-height: 5rem;
+    margin-top: var(--text-clear);
     /* Wide enough for the slogan on one line on wide screens. */
     max-width: 48rem;
   }
@@ -559,13 +618,13 @@ const wipes = [
   /* With the dots, the title and the cues sit close under the line (owner's
      review, 2026-10-26): the line is 7.68% of the stage's height above its
      bottom (DOT_FLOOR, ./dotScene.ts), so they are drawn that much higher,
-     about the stack's 1rem gap below it. Drawn only: the text slot and the
-     controls keep their places, and the motto stays where it is. Nothing
+     about the stack's 1rem gap below it (whatever --text-clear added to the text slot, the controls not being there yet). Drawn only: the text slot keeps its
+     place, and the motto stays where it is. Nothing
      shows below the line in the intro, so they cover nothing. In the
      stacked layouts only: the side column is beside the ring. */
   @media not ((orientation: landscape) and (max-height: 32rem) and (max-width: 60rem)) {
     .intro[data-intro-figure='dots'] .intro__sentences {
-      translate: 0 calc(-0.0768 * var(--ring));
+      translate: 0 calc(-1 * (var(--line-up) * var(--ring) + var(--text-clear)));
     }
   }
 
@@ -578,42 +637,158 @@ const wipes = [
 
   /* ---------- Controls ---------- */
 
-  /* The stop control, below the text; its place is kept once it is hidden,
-     so nothing moves. */
+  /* The two controls, one compact group (owner, 2026-10-31), centred on the
+     ring's vertical axis, just under the line (the frontmatter gives the line's
+     height). Absolutely placed in a layer over the stage, so showing or hiding
+     them moves nothing. The layer lets everything through but the buttons, so
+     the menu's items stay reachable. The toggle's and Replay's places are both
+     kept while either is hidden.
+     Each button is the 44px tap target; its face is the visible disc, in the
+     page's ground like the menu's icons, so the ring and the line stop at it. */
   .intro__controls {
-    display: grid;
-    grid-template-areas: 'action';
-    justify-items: center;
+    position: relative;
+    z-index: 1;
+    width: var(--ring);
+    aspect-ratio: 1;
+    pointer-events: none;
   }
 
-  .intro__controls > .intro__action {
-    grid-area: action;
+  .intro__group {
+    position: absolute;
+    left: 50%;
+    display: grid;
+    grid-template-columns: repeat(2, var(--tap-min));
+    translate: -50% calc(-50% + var(--control-drop));
+    animation: intro-controls-in 300ms cubic-bezier(0.45, 0, 0.25, 1);
+  }
+
+  @keyframes intro-controls-in {
+    from {
+      opacity: 0;
+    }
   }
 
   .intro__action {
-    min-height: var(--tap-min);
-    padding-inline: var(--space-3);
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: var(--tap-min);
+    height: var(--tap-min);
+    padding: 0;
     border: 0;
+    border-radius: 50%;
     background: none;
     color: var(--color-muted);
     font: inherit;
-    font-size: var(--text-small);
     cursor: pointer;
+    pointer-events: auto;
   }
 
-  .intro__action:hover {
-    text-decoration-line: underline;
-    text-underline-offset: 0.3em;
+  /* The focus ring, between the disc and the next button's. */
+  .intro__action:focus-visible {
+    outline-offset: -2px;
   }
 
-  /* Replay, in the coming-soon line's place (owner, 2026-10-26): its label
-     sits exactly where that line's text was, and the margins give back what
-     the tap target adds, so the text slot and the controls keep their sizes.
-     Set as the stop control is (.ui on its wrapper), at that line's line height. */
+  .intro__toggle {
+    grid-column: 1;
+  }
+
   .intro__replay {
-    margin-block: calc((var(--text-small) * var(--leading-body) - var(--tap-min)) / 2);
+    grid-column: 2;
+  }
+
+  .intro__face {
+    display: grid;
+    place-items: center;
+    width: var(--control);
+    height: var(--control);
+    border-radius: 50%;
+    background: var(--color-bg);
+    box-shadow: inset 0 0 0 1px var(--color-rule);
+  }
+
+  .intro__icon {
+    width: 55%;
+    height: 55%;
+  }
+
+  /* The automatic pose cycling on: solid, the logo's green. The state is
+     aria-pressed; the tooltip says it again, with what a click does. */
+  .intro__toggle[aria-pressed='true'] .intro__face {
+    background: var(--color-brand);
+    color: var(--color-on-brand);
+    box-shadow: none;
+  }
+
+  @media (hover: hover) {
+    .intro__action:hover .intro__face {
+      box-shadow: inset 0 0 0 1px currentColor;
+    }
+  }
+
+  /* Never past the screen's edge from the outer edge of a button: 2 × the room beside it. */
+  .intro__tip {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    width: max-content;
+    max-width: min(20rem, calc(2 * (50vw - var(--gutter) - var(--tap-min))));
+    padding: var(--space-1) var(--space-2);
+    border: 1px solid var(--color-rule);
+    border-radius: var(--space-1);
+    background: var(--color-bg);
+    color: var(--color-muted);
+    font-size: var(--text-label);
+    line-height: 1.35;
+    text-wrap: balance;
+    translate: -50% 0;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition:
+      opacity 150ms cubic-bezier(0.45, 0, 0.25, 1),
+      visibility 150ms;
+  }
+
+  .intro__toggle[aria-pressed='true'] .intro__tip-off,
+  .intro__toggle[aria-pressed='false'] .intro__tip-on {
+    display: none;
+  }
+
+  .intro__action:focus-visible .intro__tip {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  @media (hover: hover) {
+    .intro__action:hover .intro__tip {
+      opacity: 1;
+      visibility: visible;
+    }
+  }
+
+  /* The intro's stop control (owner, 2026-10-31), the only control while it
+     plays: at the top of the section, its disc in line with the header rule's
+     left end. Its tap target clears every menu link there, down to 320px wide
+     (4px above the section, over nothing interactive), and being absolutely
+     placed it moves nothing. */
+  .intro__halt {
+    --control: 1.75rem;
+
+    position: absolute;
+    top: calc(-1 * var(--space-1));
+    left: calc(max(var(--gutter), (100% - var(--page-max)) / 2) - (var(--tap-min) - var(--control)) / 2);
+    z-index: 1;
+  }
+
+  /* Beside it, not centred under it: there is no room to its left. Set as the
+     other tooltips are (they get this from .ui, on their wrapper). */
+  .intro__halt .intro__tip {
+    top: 50%;
+    left: 100%;
     font-family: var(--font-sans);
     font-weight: 500;
+    translate: 0 -50%;
   }
 
   /* ---------- Before the scene shows them ---------- */
@@ -686,21 +861,28 @@ const wipes = [
     visibility: visible;
   }
 
-  /* The stop control waits for the script that makes it work. */
-  :global(:root[data-intro='starting']) [data-intro-homepage] [data-intro-stop] {
-    visibility: hidden;
+  /* The stop control only while the intro plays, once the script that makes it work runs. */
+  :global(:root:not([data-intro='playing'])) [data-intro-homepage] .intro__halt {
+    display: none;
+  }
+
+  /* The toggle and Replay not during the intro (owner, 2026-10-31): both come
+     together once it has ended or been stopped. Not displayed, so neither can
+     take focus and the scene's inline styles on them don't matter. */
+  :global(:root:is([data-intro='starting'], [data-intro='playing'])) [data-intro-homepage] .intro__group {
+    display: none;
   }
 
   /* No controls with reduced motion or without scripting (the approved
-     reduced-motion state has no Replay). Not while it plays: reduced motion
-     switched on then stops it (./homepage.ts), and the stop control keeps
-     focus until that moves it on. */
+     reduced-motion state has no Replay). Not while it moves: reduced motion
+     switched on then stops it (./homepage.ts), and the toggle keeps focus
+     until that moves it on. */
   :global(:root:not([data-intro])) [data-intro-homepage] .intro__action {
     display: none;
   }
 
   @media (prefers-reduced-motion: reduce) {
-    :global(:root:not([data-intro='playing'])) [data-intro-homepage] .intro__action {
+    :global(:root:not([data-intro='playing'], [data-intro='looping'])) [data-intro-homepage] .intro__action {
       display: none;
     }
   }
@@ -714,12 +896,13 @@ const wipes = [
     transition: none;
   }
 
-  /* Replay: the figure and the text fade out, then in again on the first frame. */
-  [data-intro-homepage] :is(.intro__stage, .intro__text) {
+  /* Replay: the figure, the text and the controls fade out; the figure and the
+     text come in again on the first frame. */
+  [data-intro-homepage] :is(.intro__stage, .intro__text, .intro__group) {
     transition: opacity 200ms cubic-bezier(0.45, 0, 0.25, 1);
   }
 
-  [data-intro-homepage][data-fading] :is(.intro__stage, .intro__text) {
+  [data-intro-homepage][data-fading] :is(.intro__stage, .intro__text, .intro__group) {
     opacity: 0;
   }
 </style>

@@ -1,0 +1,258 @@
+---
+// The review board for the Up Stretch concept (./upStretchScene.ts), dev only, at
+// /dev/up-stretch-concept/ and /en/dev/up-stretch-concept/: the full composition,
+// the figure alone and the equipment alone, drawn by the real renderer in the
+// ring's frame; then the real menu page, in frames, at a desktop and a phone size,
+// the first concept beside the revision. The pose itself, approved, plays in the
+// loop (./loopScene.ts); this board, its `BEFORE` layout included, stays a dev record.
+import type { Lang } from '../../i18n/ui';
+import '../../styles/tokens.css';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const base = lang === 'en' ? '/en' : '';
+const copy = {
+  tr: { title: 'Up Stretch, Round Back: görsel taslak', note: 'Yalnızca geliştirme önizlemesi. Onaylanan poz ana sayfanın döngüsünde; bu sayfa bir kayıt.', full: '1. Tam kompozisyon', figure: '2. Yalnız figür', equipment: '3. Yalnız ekipman', desktop: '4. Masaüstü, 1440 × 900 (gerçek boyut, halka çevresi)', phone: '5. Telefon, 390 × 844 (gerçek boyut)', before: 'Önce', after: 'Sonra', replay: 'Geçişi yeniden oynat', open: 'Gerçek boyutta aç' },
+  en: { title: 'Up Stretch, Round Back: visual concept', note: 'Development preview only. The approved pose is in the homepage loop; this page is a record.', full: '1. Full composition', figure: '2. Figure only', equipment: '3. Equipment only', desktop: '4. Desktop, 1440 × 900 (actual size, around the ring)', phone: '5. Phone, 390 × 844 (actual size)', before: 'Before', after: 'After', replay: 'Replay the transition', open: 'Open at full size' },
+}[lang];
+const frame = `${base}/dev/home-menu/#pose-up-stretch`;
+const earlier = `${base}/dev/home-menu/?upStretch=before#pose-up-stretch`;
+const versions = [
+  { label: copy.before, src: earlier },
+  { label: copy.after, src: frame },
+];
+const views = [
+  { id: 'full', label: copy.full },
+  { id: 'figure', label: copy.figure },
+  { id: 'equipment', label: copy.equipment },
+];
+---
+
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>{copy.title} (dev)</title>
+  </head>
+  <body data-dev-only>
+    <header>
+      <h1>{copy.title}</h1>
+      <p>{copy.note}</p>
+    </header>
+    <section class="views">
+      {
+        views.map((view) => (
+          <figure>
+            <figcaption>{view.label}</figcaption>
+            <div class="stage">
+              <svg viewBox="0 0 1000 1000" aria-hidden="true">
+                <circle cx="500" cy="500" r="460" />
+              </svg>
+              <canvas data-view={view.id} />
+            </div>
+          </figure>
+        ))
+      }
+    </section>
+    <h2>{copy.desktop}</h2>
+    <section class="scales">
+      {
+        versions.map(({ label, src }) => (
+          <figure>
+            <figcaption>{label} · <a href={src}>{copy.open}</a></figcaption>
+            <div class="window desktop"><iframe src={src} title={`${copy.desktop}: ${label}`} width="1440" height="900"></iframe></div>
+          </figure>
+        ))
+      }
+    </section>
+    <h2>{copy.phone}</h2>
+    <section class="scales">
+      {
+        versions.map(({ label, src }) => (
+          <figure>
+            <figcaption>{label}</figcaption>
+            <div class="window phone"><iframe src={src} title={`${copy.phone}: ${label}`} width="390" height="844"></iframe></div>
+          </figure>
+        ))
+      }
+    </section>
+    <p><button type="button" data-replay>{copy.replay}</button></p>
+  </body>
+</html>
+
+<script>
+  import { sampleFigure, type Dots } from '../../components/dot-figure/model';
+  import { PALETTES } from '../../components/dot-figure/palettes';
+  import { colours, Stage, type Look } from '../../components/dot-figure/render';
+  import { LOOK } from '../../components/dot-figure/timeline';
+  import { DOT_FLOOR } from '../../components/home-intro/dotScene';
+  import { RING, STAGE } from '../../components/home-intro/geometry';
+  import { sampleParts, UNIT } from './particleScene';
+  import { compose, staysHers } from './upStretchScene';
+
+  const dots = sampleFigure('dense');
+  const scene = compose(dots);
+  const hers: number[] = [];
+  const pool: number[] = [];
+  for (let i = 0; i < dots.count; i++) (staysHers(dots, scene.keep, i) ? hers : pool).push(i);
+  const equipment = sampleParts(scene.parts, pool.length);
+
+  const placement = { scale: UNIT / STAGE, x: RING.cx / STAGE, floor: DOT_FLOOR / STAGE };
+  const fill = colours(PALETTES.find((p) => p.id === 'clay-sage')!, getComputedStyle(document.documentElement).getPropertyValue('--color-bg').trim());
+  const look: Look = { ...LOOK, lineAlpha: 1 };
+
+  /** Depth lives in the renderer's own third coordinate: at its 90° view, x on screen is the layout's x, and the depth is the layout's depth. */
+  function shape(count: number, at: (k: number) => [number, number, number, number, number, number]): { shown: Dots; pos: Float64Array } {
+    const pos = new Float64Array(count * 3);
+    const tone = new Uint8Array(count);
+    const level = new Uint8Array(count);
+    const spine = new Uint8Array(count);
+    for (let k = 0; k < count; k++) {
+      const [x, y, depth, t, l, s] = at(k);
+      pos.set([-depth, y, x], k * 3);
+      [tone[k], level[k], spine[k]] = [t, l, s];
+    }
+    return { shown: { ...dots, count, tone, level, spine, lines: new Uint32Array(0) }, pos };
+  }
+  const figure = shape(hers.length, (k) => {
+    const i = hers[k];
+    return [scene.person[i * 3], scene.person[i * 3 + 1], scene.person[i * 3 + 2], dots.tone[i], dots.level[i], dots.spine[i]];
+  });
+  const apparatus = shape(equipment.points.length, (k) => {
+    const { x, y, k: depth, tone, level } = equipment.points[k];
+    return [x, y, depth, tone, level, 0];
+  });
+  const full = shape(hers.length + equipment.points.length, (k) => {
+    if (k < hers.length) {
+      const i = hers[k];
+      return [scene.person[i * 3], scene.person[i * 3 + 1], scene.person[i * 3 + 2], dots.tone[i], dots.level[i], dots.spine[i]];
+    }
+    const { x, y, k: depth, tone, level } = equipment.points[k - hers.length];
+    return [x, y, depth, tone, level, 0];
+  });
+  const shapes: Record<string, typeof full> = { full, figure, equipment: apparatus };
+
+  for (const canvas of document.querySelectorAll<HTMLCanvasElement>('canvas[data-view]')) {
+    const stage = new Stage(canvas);
+    const { shown, pos } = shapes[canvas.dataset.view!];
+    const paint = () => stage.draw(shown, pos, 90, look, fill, placement);
+    new ResizeObserver(() => {
+      if (stage.resize()) paint();
+    }).observe(canvas);
+    stage.resize();
+    paint();
+  }
+
+  // The frames: their dev bar and toolbar out of the picture; the real page otherwise.
+  const frames = [...document.querySelectorAll('iframe')];
+  const tidy = (frame: HTMLIFrameElement) => {
+    const doc = frame.contentDocument;
+    if (!doc) return;
+    const style = doc.createElement('style');
+    style.textContent = '.preview-bar, astro-dev-toolbar { display: none !important; }';
+    doc.head.append(style);
+  };
+  // A window smaller than its frame opens on the ring.
+  const onRing = (frame: HTMLIFrameElement) => {
+    const canvas = frame.contentDocument?.querySelector("[data-preview-frame='pose-up-stretch'] canvas");
+    if (!canvas) return;
+    const ring = canvas.getBoundingClientRect();
+    const box = frame.parentElement!;
+    box.scrollLeft = ring.left + ring.width / 2 - box.clientWidth / 2;
+    box.scrollTop = ring.top + ring.height / 2 - box.clientHeight / 2;
+  };
+  const ready = (frame: HTMLIFrameElement) => {
+    tidy(frame);
+    onRing(frame);
+  };
+  for (const frame of frames) {
+    frame.addEventListener('load', () => ready(frame));
+    if (frame.contentDocument?.readyState === 'complete') ready(frame);
+  }
+  document.querySelector('[data-replay]')!.addEventListener('click', () => {
+    for (const frame of frames) frame.contentDocument?.querySelector<HTMLButtonElement>('[data-dev-restart]')?.click();
+  });
+</script>
+
+<style>
+  :global(astro-dev-toolbar) {
+    display: none;
+  }
+  body {
+    margin: 0;
+    padding: 24px;
+    background: var(--color-bg);
+    color: var(--color-text);
+    font: 14px/1.5 system-ui, sans-serif;
+  }
+  h1 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+  }
+  header p {
+    margin: 0 0 16px;
+  }
+  figure {
+    margin: 0;
+  }
+  figcaption {
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+  .views {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 24px;
+    max-width: 1500px;
+  }
+  .stage {
+    position: relative;
+    aspect-ratio: 1;
+  }
+  .stage svg,
+  .stage canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .stage circle {
+    fill: none;
+    stroke: var(--color-rule);
+    stroke-width: 2;
+  }
+  h2 {
+    margin: 32px 0 12px;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .scales {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    align-items: flex-start;
+  }
+  .window {
+    overflow: hidden;
+    border: 1px solid var(--color-rule);
+  }
+  .window iframe {
+    display: block;
+    border: 0;
+  }
+  .desktop {
+    width: min(680px, calc(100vw - 48px));
+    height: 640px;
+    overflow: auto;
+  }
+  .phone {
+    width: 390px;
+    height: 844px;
+  }
+</style>

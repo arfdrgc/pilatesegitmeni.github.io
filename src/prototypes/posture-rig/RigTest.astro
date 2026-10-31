@@ -1,0 +1,613 @@
+---
+// Dev-only test of the female's posture rig (changes A–C approved on
+// 2026-10-24), at /dev/posture-rig/ and /en/dev/posture-rig/, rendered by the
+// dev routes in src/pages/dev/[prototype].astro and
+// src/pages/en/dev/[prototype].astro. Isolated from the intro: the side view
+// from ./rig.ts (a continuous torso, a shoulder-blade joint, the thighs'
+// outline under the pelvis), moved by the approved intro's pose functions,
+// unchanged. The page has a scrubber, a magnified view beside the approved
+// rigid-slice figure in the same pose, a seam check, still frames, and the
+// two figures at rest compared pixel by pixel.
+import Character from '../../components/ritual/Character.astro';
+import { DURATION } from '../../components/ritual/intro/timeline';
+import type { Lang } from '../../i18n/ui';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { rigMarkup } from './rig';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const translations = { tr: '/dev/posture-rig/', en: '/en/dev/posture-rig/' };
+
+/** The whole figure, and the regions the magnified view can show (viewBox units). */
+const FULL = '104 24 132 420';
+const REGIONS = {
+  torso: '118 96 80 136',
+  shoulder: '128 96 48 48',
+  pelvis: '120 196 70 76',
+  neck: '128 30 90 120',
+  full: FULL,
+} as const;
+
+/** Still frames: the slouch, the back straightening from the pelvis up, the neck and head, the chin tuck, the top of the breath, the end. */
+const stills = [0, 2300, 2800, 3300, 3900, 4700, 6000, 8200, 11800, DURATION];
+
+const t = {
+  tr: {
+    title: 'Duruş iskeleti testi',
+    intro:
+      'Kadın karakter yandan, onaylı giriş hareketiyle (zamanlama ve açılar değişmedi). A: gövde ve boyun artık üst üste binen katı dilimler değil, omurgayı izleyen tek, kesintisiz bir çizgi. B: kürek kemiği eklemi çöküşte omzu ve kolu biraz öne ve aşağı taşır, göğüs kafesinin hemen ardından geri çekilir. C: leğen kemiğinin dönüşü kalça kıvrımına doğru söner, uyluk çizgisi leğen kemiğinin altında başlar.',
+    scope: 'Yalnızca bu test sayfası: giriş, ana sayfa ve onaylı çizim dosyaları değişmedi.',
+    play: 'Oynat',
+    pause: 'Duraklat',
+    back: '−1 kare',
+    forward: '+1 kare',
+    speed: 'Hız',
+    time: 'Zaman',
+    seam: 'Ek yeri denetimi',
+    seamNote: 'Boşluklar koyu yeşil, tüm dış çizgiler kiremit, deri açık, giysi adaçayı tonunda görünür.',
+    ghosts: 'Başlangıç ve bitiş gölgesi',
+    pivots: 'Eklem noktaları',
+    region: 'Büyütülen bölge',
+    regions: { torso: 'Gövde', shoulder: 'Omuz', pelvis: 'Leğen kemiği', neck: 'Boyun ve baş', full: 'Tüm figür' },
+    live: 'Yeni iskelet',
+    before: 'Önce: onaylı katı dilimler (aynı açılar; nefes ve kürek kemiği yok)',
+    after: 'Sonra: kesintisiz gövde',
+    stills: 'Kareler',
+    go: 'Bu kareye git',
+    rest: 'Durgun hâl karşılaştırması',
+    restIntro:
+      'Hareketsiz figür, onaylı çizim ile yeni iskelet arasında piksel piksel karşılaştırılır (5× çözünürlük). Fark haritasında farklı pikseller kiremit tonunda gösterilir.',
+    restBefore: 'Onaylı çizim',
+    restAfter: 'Yeni iskelet',
+    restDiff: 'Fark haritası',
+    computing: 'Hesaplanıyor…',
+  },
+  en: {
+    title: 'Posture rig test',
+    intro:
+      'The female character from the side, in the approved intro movement (timing and angles unchanged). A: the torso and neck are no longer overlapping rigid slices but one continuous outline that follows the spine. B: a shoulder-blade joint carries the shoulder and arm a little forward and down in the slouch, and draws back just after the rib cage. C: the pelvis’s turn fades out towards the glute fold, and the thigh’s outline starts under the pelvis.',
+    scope: 'This test page only: the intro, the homepage and the approved artwork files are unchanged.',
+    play: 'Play',
+    pause: 'Pause',
+    back: '−1 frame',
+    forward: '+1 frame',
+    speed: 'Speed',
+    time: 'Time',
+    seam: 'Seam check',
+    seamNote: 'Gaps show dark green, every outline terracotta, skin light and the suit sage.',
+    ghosts: 'Start and end ghosts',
+    pivots: 'Joint pivots',
+    region: 'Magnified region',
+    regions: { torso: 'Torso', shoulder: 'Shoulder', pelvis: 'Pelvis', neck: 'Neck and head', full: 'Whole figure' },
+    live: 'New rig',
+    before: 'Before: approved rigid slices (same angles; no breath or shoulder blade)',
+    after: 'After: continuous torso',
+    stills: 'Frames',
+    go: 'Go to this frame',
+    rest: 'At-rest comparison',
+    restIntro:
+      'The still figure, compared pixel by pixel between the approved artwork and the new rig (at 5× resolution). The difference map shows differing pixels in terracotta.',
+    restBefore: 'Approved artwork',
+    restAfter: 'New rig',
+    restDiff: 'Difference map',
+    computing: 'Computing…',
+  },
+}[lang];
+---
+
+<BaseLayout title={`${t.title} (dev)`} translations={translations} lockup>
+  <div class="rig container" data-dev-only data-rig-root>
+    <h1 class="rig__title">{t.title}</h1>
+    <p class="rig__intro">{t.intro}</p>
+    <p class="rig__intro rig__note ui">{t.scope}</p>
+
+    <div class="rig__controls ui">
+      <button type="button" class="rig__button" data-rig-play data-play={t.play} data-pause={t.pause}>{t.play}</button>
+      <button type="button" class="rig__button" data-rig-step="-1">{t.back}</button>
+      <button type="button" class="rig__button" data-rig-step="1">{t.forward}</button>
+      <label class="rig__field">
+        {t.speed}
+        <select data-rig-speed>
+          {[1, 0.5, 0.25, 0.1].map((rate) => <option value={rate}>{rate}×</option>)}
+        </select>
+      </label>
+      <label class="rig__field rig__field--time">
+        {t.time}
+        <input type="range" min="0" max={DURATION} step="1" value="0" data-rig-time />
+        <span class="rig__clock" data-rig-clock>0 ms</span>
+      </label>
+    </div>
+    <div class="rig__controls ui">
+      <label class="rig__field"><input type="checkbox" data-rig-toggle="seam" /> {t.seam}</label>
+      <label class="rig__field"><input type="checkbox" data-rig-toggle="ghosts" /> {t.ghosts}</label>
+      <label class="rig__field"><input type="checkbox" data-rig-toggle="pivots" /> {t.pivots}</label>
+      <label class="rig__field">
+        {t.region}
+        <select data-rig-region>
+          {Object.entries(REGIONS).map(([key, box]) => <option value={box}>{t.regions[key as keyof typeof REGIONS]}</option>)}
+        </select>
+      </label>
+    </div>
+    <p class="rig__note rig__seam-note ui">{t.seamNote}</p>
+
+    <div class="rig__live">
+      <figure class="rig__stage rig__stage--main">
+        <svg viewBox={FULL} aria-hidden="true">
+          <g class="rig-fig rig__ghost" set:html={rigMarkup(0)} />
+          <g class="rig-fig rig__ghost" set:html={rigMarkup(DURATION)} />
+          <g class="rig-fig" data-rig-live set:html={rigMarkup(0)} />
+        </svg>
+        <figcaption class="ui">{t.live}</figcaption>
+      </figure>
+      <figure class="rig__stage">
+        <svg viewBox={REGIONS.torso} aria-hidden="true" data-rig-zoom>
+          <g data-rig-old><Character character="female" view="side" /></g>
+        </svg>
+        <figcaption class="ui">{t.before}</figcaption>
+      </figure>
+      <figure class="rig__stage">
+        <svg viewBox={REGIONS.torso} aria-hidden="true" data-rig-zoom>
+          <g class="rig-fig" data-rig-live set:html={rigMarkup(0)} />
+        </svg>
+        <figcaption class="ui">{t.after}</figcaption>
+      </figure>
+    </div>
+
+    <h2 class="rig__h2 ui">{t.stills}</h2>
+    <div class="rig__strip">
+      {
+        stills.map((at) => (
+          <figure class="rig__stage">
+            <svg viewBox={FULL} aria-hidden="true">
+              <g class="rig-fig" set:html={rigMarkup(at)} />
+            </svg>
+            <figcaption class="ui">
+              <button type="button" class="rig__link" data-rig-seek={at} aria-label={`${t.go}: ${at} ms`}>
+                {at} ms
+              </button>
+            </figcaption>
+          </figure>
+        ))
+      }
+    </div>
+
+    <h2 class="rig__h2 ui">{t.rest}</h2>
+    <p class="rig__intro">{t.restIntro}</p>
+    <div class="rig__rest">
+      <figure class="rig__stage">
+        <svg viewBox={FULL} aria-hidden="true" data-rig-rest="before"><Character character="female" view="side" /></svg>
+        <figcaption class="ui">{t.restBefore}</figcaption>
+      </figure>
+      <figure class="rig__stage">
+        <svg viewBox={FULL} aria-hidden="true" data-rig-rest="after"><g class="rig-fig" set:html={rigMarkup(DURATION)} /></svg>
+        <figcaption class="ui">{t.restAfter}</figcaption>
+      </figure>
+      <figure class="rig__stage">
+        <canvas class="rig__diff" data-rig-diff></canvas>
+        <figcaption class="ui">{t.restDiff}</figcaption>
+      </figure>
+    </div>
+    <pre class="rig__stats ui" data-rig-stats>{t.computing}</pre>
+  </div>
+</BaseLayout>
+
+<script>
+  import { DURATION } from '../../components/ritual/intro/timeline';
+  import { createRig, createRigidRig } from './rig';
+
+  const root = document.querySelector<HTMLElement>('[data-rig-root]')!;
+  const q = <T extends Element>(selector: string) => root.querySelector<T>(selector)!;
+  const figures = [
+    ...[...root.querySelectorAll<SVGGElement>('[data-rig-live]')].map(createRig),
+    ...[...root.querySelectorAll<SVGGElement>('[data-rig-old]')].map(createRigidRig),
+  ];
+
+  const play = q<HTMLButtonElement>('[data-rig-play]');
+  const speed = q<HTMLSelectElement>('[data-rig-speed]');
+  const range = q<HTMLInputElement>('[data-rig-time]');
+  const clock = q<HTMLElement>('[data-rig-clock]');
+
+  /** One frame at 60 frames per second. */
+  const FRAME = 1000 / 60;
+  let time = 0;
+  let frame = 0;
+  let last = 0;
+
+  function show(ms: number) {
+    time = Math.min(DURATION, Math.max(0, ms));
+    for (const pose of figures) pose(time);
+    range.value = String(Math.round(time));
+    clock.textContent = `${Math.round(time)} ms`;
+  }
+
+  function stop() {
+    cancelAnimationFrame(frame);
+    frame = 0;
+    play.textContent = play.dataset.play!;
+  }
+
+  function tick(now: number) {
+    show(time + Math.min(now - last, 50) * Number(speed.value));
+    last = now;
+    if (time >= DURATION) return stop();
+    frame = requestAnimationFrame(tick);
+  }
+
+  play.addEventListener('click', () => {
+    if (frame) return stop();
+    if (time >= DURATION) time = 0;
+    last = performance.now();
+    play.textContent = play.dataset.pause!;
+    frame = requestAnimationFrame(tick);
+  });
+  range.addEventListener('input', () => {
+    stop();
+    show(Number(range.value));
+  });
+  for (const button of root.querySelectorAll<HTMLButtonElement>('[data-rig-step]')) {
+    button.addEventListener('click', () => {
+      stop();
+      show(time + Number(button.dataset.rigStep) * FRAME);
+    });
+  }
+  for (const button of root.querySelectorAll<HTMLButtonElement>('[data-rig-seek]')) {
+    button.addEventListener('click', () => {
+      stop();
+      show(Number(button.dataset.rigSeek));
+      root.scrollIntoView({ behavior: 'smooth' });
+    });
+  }
+  for (const box of root.querySelectorAll<HTMLInputElement>('[data-rig-toggle]')) {
+    box.addEventListener('change', () => root.toggleAttribute(`data-${box.dataset.rigToggle}`, box.checked));
+  }
+  q<HTMLSelectElement>('[data-rig-region]').addEventListener('change', (event) => {
+    const box = (event.target as HTMLSelectElement).value;
+    for (const svg of root.querySelectorAll('[data-rig-zoom]')) svg.setAttribute('viewBox', box);
+  });
+
+  show(0);
+
+  // ---------- At rest: the approved figure and the new rig, pixel by pixel ----------
+
+  /** Presentation properties copied onto each drawn element, so the figure renders the same as an image. */
+  const PROPS = ['fill', 'fill-opacity', 'stroke', 'stroke-width', 'stroke-opacity', 'stroke-linecap', 'stroke-linejoin', 'paint-order', 'opacity', 'display'];
+  const SCALE = 5;
+
+  /** A figure's SVG as pixels, its styles resolved (shapes inside <defs> and clip paths keep their own). */
+  async function pixels(svg: SVGSVGElement) {
+    const [, , w, h] = svg.getAttribute('viewBox')!.split(' ').map(Number);
+    const clone = svg.cloneNode(true) as SVGSVGElement;
+    const from = [...svg.querySelectorAll('*')];
+    const to = [...clone.querySelectorAll('*')];
+    from.forEach((el, i) => {
+      if (el.closest('defs, clipPath')) return;
+      const style = getComputedStyle(el);
+      to[i].setAttribute('style', `${to[i].getAttribute('style') ?? ''};${PROPS.map((p) => `${p}:${style.getPropertyValue(p)}`).join(';')}`);
+    });
+    clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    clone.setAttribute('width', String(w * SCALE));
+    clone.setAttribute('height', String(h * SCALE));
+    const url = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(clone)], { type: 'image/svg+xml' }));
+    const img = new Image();
+    img.src = url;
+    await img.decode();
+    URL.revokeObjectURL(url);
+    const canvas = document.createElement('canvas');
+    canvas.width = w * SCALE;
+    canvas.height = h * SCALE;
+    const ctx = canvas.getContext('2d')!;
+    ctx.drawImage(img, 0, 0);
+    return ctx.getImageData(0, 0, canvas.width, canvas.height);
+  }
+
+  async function compareAtRest() {
+    const before = await pixels(q<SVGSVGElement>('[data-rig-rest="before"]'));
+    const after = await pixels(q<SVGSVGElement>('[data-rig-rest="after"]'));
+    const { width, height } = before;
+    const canvas = q<HTMLCanvasElement>('[data-rig-diff]');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d')!;
+    const map = ctx.createImageData(width, height);
+    const [top] = q<SVGSVGElement>('[data-rig-rest="before"]').getAttribute('viewBox')!.split(' ').slice(1).map(Number);
+    let figure = 0;
+    let any = 0;
+    let visible = 0;
+    let max = 0;
+    /** Visibly differing pixels per 10 units of height. */
+    const bands = new Map<number, number>();
+    const marks: number[] = [];
+    for (let i = 0; i < before.data.length; i += 4) {
+      const d = Math.max(...[0, 1, 2, 3].map((c) => Math.abs(before.data[i + c] - after.data[i + c])));
+      if (before.data[i + 3] || after.data[i + 3]) figure++;
+      max = Math.max(max, d);
+      // The new rig, faint, as the map's ground; the differences go over it.
+      map.data[i] = map.data[i + 1] = map.data[i + 2] = 255 - after.data[i + 3] * 0.15;
+      map.data[i + 3] = 255;
+      if (d > 4) any++;
+      if (d > 24) {
+        visible++;
+        const band = Math.floor((top + Math.floor(i / 4 / width) / SCALE) / 10) * 10;
+        bands.set(band, (bands.get(band) ?? 0) + 1);
+      }
+      if (d > 4) marks.push(i / 4);
+    }
+    ctx.putImageData(map, 0, 0);
+    // Each differing pixel as a block one unit wide, in terracotta (--color-accent), so it shows at page size.
+    ctx.fillStyle = getComputedStyle(root).getPropertyValue('--color-accent');
+    for (const p of marks) ctx.fillRect((p % width) - SCALE / 2, Math.floor(p / width) - SCALE / 2, SCALE, SCALE);
+    const pct = (n: number) => `${((100 * n) / figure).toFixed(3)}%`;
+    const worst = [...bands].sort((a, b) => b[1] - a[1]).slice(0, 6);
+    q<HTMLElement>('[data-rig-stats]').textContent = [
+      `figure pixels: ${figure} (${width}×${height} at ${SCALE}×)`,
+      `pixels differing at all (> 4/255): ${any} (${pct(any)})`,
+      `pixels differing visibly (> 24/255): ${visible} (${pct(visible)})`,
+      `largest difference: ${max}/255`,
+      `visible differences by height (viewBox units): ${worst.map(([y, n]) => `${y}–${y + 10}: ${n}`).join(', ') || 'none'}`,
+    ].join('\n');
+  }
+
+  compareAtRest();
+</script>
+
+<style>
+  .rig {
+    display: grid;
+    gap: var(--space-3);
+    padding-block: var(--space-4) var(--space-6);
+  }
+
+  .rig__title {
+    margin: 0;
+    font-size: var(--text-h2);
+    font-weight: 300;
+  }
+
+  .rig__intro {
+    max-width: 44rem;
+    margin: 0;
+  }
+
+  .rig__note {
+    font-size: var(--text-small);
+    color: var(--color-muted);
+  }
+
+  .rig__seam-note {
+    display: none;
+    margin: 0;
+  }
+
+  .rig[data-seam] .rig__seam-note {
+    display: block;
+  }
+
+  .rig__controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-3);
+  }
+
+  .rig__button,
+  .rig__controls select {
+    min-height: 2.25rem;
+    padding-inline: var(--space-3);
+    border: 1px solid var(--color-rule);
+    border-radius: 999px;
+    background: var(--color-bg);
+    color: var(--color-text);
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .rig__field {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .rig__field--time input {
+    width: min(20rem, 60vw);
+  }
+
+  .rig__clock {
+    min-width: 5rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .rig__h2 {
+    margin: var(--space-4) 0 0;
+  }
+
+  .rig__stage {
+    display: grid;
+    gap: var(--space-1);
+    min-width: 0;
+    margin: 0;
+    text-align: center;
+    font-size: var(--text-small);
+  }
+
+  .rig__stage svg,
+  .rig__diff {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  /* The full figure beside two magnified views: before and after. */
+  .rig__live {
+    display: grid;
+    grid-template-columns: minmax(0, 0.6fr) minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--space-3);
+    align-items: start;
+  }
+
+  .rig__live [data-rig-zoom] {
+    aspect-ratio: 80 / 136;
+    border: 1px solid var(--color-rule);
+  }
+
+  @media (max-width: 40rem) {
+    .rig__live {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+
+    .rig__stage--main {
+      grid-column: 1 / -1;
+      width: min(14rem, 100%);
+      justify-self: center;
+    }
+  }
+
+  .rig__strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr));
+    gap: var(--space-2);
+  }
+
+  .rig__rest {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-3);
+    max-width: 48rem;
+  }
+
+  .rig__link {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--color-accent);
+    font: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  .rig__stats {
+    margin: 0;
+    font-size: var(--text-small);
+    white-space: pre-wrap;
+  }
+
+  .rig__ghost {
+    display: none;
+    opacity: 0.3;
+  }
+
+  .rig[data-ghosts] .rig__ghost {
+    display: inline;
+  }
+
+  /* ---------- The new rig's figure, styled as Character.astro styles the approved one ---------- */
+
+  .rig :global(.rig-fig .j) {
+    transform-box: view-box;
+  }
+
+  .rig :global(.rig-fig .skin) {
+    fill: var(--color-skin);
+  }
+
+  .rig :global(.rig-fig .far .skin) {
+    fill: var(--color-skin-shade);
+  }
+
+  .rig :global(.rig-fig .suit) {
+    fill: var(--color-muted);
+  }
+
+  .rig :global(.rig-fig :is(.line, .suit-line, .detail, .lip)) {
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .rig :global(.rig-fig :is(.line, .line-closed)) {
+    stroke: var(--color-skin-shade);
+    stroke-width: 0.7;
+    stroke-linejoin: round;
+  }
+
+  .rig :global(.rig-fig .line-closed) {
+    paint-order: stroke;
+    stroke-width: 1;
+  }
+
+  .rig :global(.rig-fig .suit-line) {
+    stroke: var(--color-text);
+    stroke-opacity: 0.55;
+    stroke-width: 0.6;
+  }
+
+  .rig :global(.rig-fig .detail) {
+    stroke: var(--color-skin-shade);
+    stroke-width: 0.5;
+  }
+
+  .rig :global(.rig-fig .hair) {
+    fill: var(--color-hair);
+    stroke: var(--color-hair);
+    stroke-width: 0.3;
+    stroke-linejoin: round;
+  }
+
+  .rig :global(.rig-fig .brow-1) {
+    fill: var(--color-hair);
+  }
+
+  .rig :global(.rig-fig .eyes) {
+    fill: var(--color-text);
+  }
+
+  .rig :global(.rig-fig .lip) {
+    stroke: var(--color-accent);
+    stroke-opacity: 0.5;
+    stroke-width: 0.55;
+  }
+
+  .rig :global(.rig-fig .shade) {
+    fill: var(--color-skin-shade);
+    opacity: 0.55;
+  }
+
+  .rig :global(.rig-fig .pivot) {
+    display: none;
+  }
+
+  /* ---------- Seam check: both figures in flat, contrasting fills ---------- */
+
+  .rig[data-seam] :is([data-rig-zoom], .rig__stage svg) {
+    background: var(--color-sage);
+  }
+
+  .rig[data-seam] :global(:is(.skin, .line-closed)) {
+    fill: var(--color-bg) !important;
+  }
+
+  .rig[data-seam] :global(.far .skin) {
+    fill: var(--color-rule) !important;
+  }
+
+  .rig[data-seam] :global(.suit) {
+    fill: var(--color-panel) !important;
+  }
+
+  .rig[data-seam] :global(:is(.line, .line-closed, .suit-line)) {
+    stroke: var(--color-accent) !important;
+    stroke-opacity: 1 !important;
+  }
+
+  .rig[data-seam] :global(.shade) {
+    display: none;
+  }
+
+  .rig[data-pivots] :global(.pivot) {
+    display: inline !important;
+    fill: var(--color-accent);
+    r: 0.9px;
+  }
+</style>

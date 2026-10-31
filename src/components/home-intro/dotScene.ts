@@ -7,7 +7,7 @@
 //   intro's framing (below, "Her place and the ring's size": one size and
 //   place for her, the ring sized to her pose).
 // - The intro (../dot-figure/timeline.ts, to END), in that framing: the title
-//   over the held hunch, the back straightening, the reach up at 45°, a
+//   as she appears, over the held hunch, the back straightening, the reach up at 45°, a
 //   breath in (her upper body and the ring together) and a breath out.
 // - The ending: the motto comes in and stays as she turns to the front (her
 //   own 3D turn) and the view widens to her full body, the ring to the
@@ -19,7 +19,7 @@
 import { breathe, HEIGHT, LAGS, newMatrices, pose, resolve, sampleFigure, skin, type Dots } from '../dot-figure/model';
 import { PALETTES } from '../dot-figure/palettes';
 import { colours, Stage, type Colours, type Look, type Placement } from '../dot-figure/render';
-import { END, LINES_IN, LOOK, REACH_SPAN, ROOM_START, ROOMS, SENTENCE_FADE, SIZE_SHAPE, SETTLE, YAW, breathAt, ease, lineAlphaAt, poseAt, sentenceOpacity, smooth, turnMs, yawAt as introYawAt, type Shape } from '../dot-figure/timeline';
+import { EMERGE_MS, END, LINES_IN, LOOK, REACH_SPAN, ROOM_START, ROOMS, SENTENCE_FADE, SIZE_SHAPE, SETTLE, YAW, breathAt, ease, lineAlphaAt, poseAt, sentenceOpacity, smooth, turnMs, yawAt as introYawAt, type Shape } from '../dot-figure/timeline';
 import { LINE_HALF, RING, STAGE } from './geometry';
 import type { Scene } from './scene';
 
@@ -81,7 +81,7 @@ const RING_OPEN: Span = { at: 300, ms: 1100 };
 /** The line draws out from its middle to its full length as the ring arrives. */
 const LINE_DRAW: Span = { at: 800, ms: 900 };
 /** The dots spread from the centre into the figure, the nearest first. */
-const EMERGE: Span = { at: 300, ms: 1300 };
+const EMERGE: Span = { at: 300, ms: EMERGE_MS };
 /** Each dot's own way out, as a share of EMERGE; the starts spread over the rest. */
 const TRAVEL = 0.55;
 /** How far from the centre (model units) the last dots to leave are bound. */
@@ -90,7 +90,7 @@ const REACH = 50;
 const RISE = 12;
 /** Once she has formed, her lines fade in, as after any settled pose. */
 const LINES_FORM: Span = { at: EMERGE.at + EMERGE.ms, ms: LINES_IN };
-/** The intro's own time starts here, with the title: 2500 ms. */
+/** The intro's own time starts here: 2500 ms. The title starts before it, with EMERGE (../dot-figure/timeline.ts). */
 export const OPENING = LINES_FORM.at + LINES_FORM.ms;
 /** Below the line nothing shows; this far below it (stage units, at the full body) the soles' dots are kept whole. */
 const CLIP_MARGIN = 10;

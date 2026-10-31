@@ -1,0 +1,240 @@
+---
+// Dev-only test of the side-to-front turn (plan step 4a), at
+// /dev/home-intro-turn/ and /en/dev/home-intro-turn/, rendered by the dev
+// routes in src/pages/dev/[prototype].astro and src/pages/en/dev/[prototype].astro.
+// Isolated from the intro: the female at the menu's full-body framing inside
+// the ring, turning with ../../components/home-intro/turn.ts (existing
+// artwork only), with dev controls (play, loop, speed, scrubber) and a
+// filmstrip of still frames for side-by-side review.
+import Character from '../../components/ritual/Character.astro';
+import { ANCHOR_X, RING, STAGE, pullBack, type Camera } from '../../components/home-intro/geometry';
+import { TURN_MS } from '../../components/home-intro/turn';
+import type { Lang } from '../../i18n/ui';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const translations = { tr: '/dev/home-intro-turn/', en: '/en/dev/home-intro-turn/' };
+const place = ({ scale, x, y }: Camera) => `translate(${x.toFixed(2)} ${y.toFixed(2)}) scale(${scale.toFixed(4)})`;
+const frames = [0, 500, 1000, 1500, 2000, 2500, 3000];
+const t = {
+  tr: {
+    title: 'Dönüş testi (Adım 4a)',
+    intro:
+      'Yandan önden görünüşe 3 saniyelik, parça parça 2B dönüş. Yalnızca mevcut çizimler ve eklemler kullanılıyor; yeni çizim yok. Baş önde döner, ardından omuzlar ve kollar, bel ve kalça, bacaklar, en son ayaklar.',
+    play: 'Oynat',
+    loop: 'Döngü',
+    speed: 'Hız',
+    time: 'Zaman',
+    strip: 'Kareler',
+  },
+  en: {
+    title: 'Turn test (Step 4a)',
+    intro:
+      'A 3-second, part-by-part 2D turn from the side view to the front view. Only the existing drawings and joints are used; nothing new is drawn. The head leads, then the shoulders and arms, the waist and hips, the legs, and the feet last.',
+    play: 'Play',
+    loop: 'Loop',
+    speed: 'Speed',
+    time: 'Time',
+    strip: 'Frames',
+  },
+}[lang];
+---
+
+<BaseLayout title={`${t.title} (dev)`} translations={translations} lockup>
+  <div class="turn container" data-dev-only>
+    <h1 class="turn__title">{t.title}</h1>
+    <p class="turn__intro">{t.intro}</p>
+
+    <div class="turn__controls ui">
+      <button type="button" class="turn__button" data-turn-play>{t.play}</button>
+      <label class="turn__field"><input type="checkbox" data-turn-loop checked /> {t.loop}</label>
+      <label class="turn__field">
+        {t.speed}
+        <select data-turn-speed>
+          {[1, 0.5, 0.25].map((rate) => <option value={rate}>{rate}×</option>)}
+        </select>
+      </label>
+      <label class="turn__field turn__field--time">
+        {t.time}
+        <input type="range" min="0" max={TURN_MS} step="10" value="0" data-turn-time />
+        <span class="turn__clock" data-turn-clock>0 ms</span>
+      </label>
+    </div>
+
+    {
+      [[{ main: true, at: 0 }], frames.map((at) => ({ main: false, at }))].map((group, i) => (
+        <>
+          {i === 1 && <h2 class="turn__h2 ui">{t.strip}</h2>}
+          <div class:list={[i ? 'turn__strip' : 'turn__main']}>
+            {group.map(({ main, at }) => (
+              <figure class="turn__stage">
+                <svg viewBox={`0 0 ${STAGE} ${STAGE}`} aria-hidden="true" data-turn-svg data-turn-main={main ? '' : undefined} data-turn-at={at}>
+                  <circle class="turn__ring" cx={RING.cx} cy={RING.cy} r={RING.r} />
+                  <g transform={place(pullBack(1, ANCHOR_X.side))} data-turn-view="side">
+                    <Character character="female" view="side" />
+                  </g>
+                  <g transform={place(pullBack(1, ANCHOR_X.front))} data-turn-view="front">
+                    <Character character="female" view="front" />
+                  </g>
+                </svg>
+                {!main && <figcaption class="ui">{at} ms</figcaption>}
+              </figure>
+            ))}
+          </div>
+        </>
+      ))
+    }
+  </div>
+</BaseLayout>
+
+<script>
+  import { TURN_MS, createTurn } from '../../components/home-intro/turn';
+
+  // Before and after the turn the loop holds each view a moment.
+  const HOLD_BEFORE = 700;
+  const HOLD_AFTER = 1000;
+
+  const stages = [...document.querySelectorAll<SVGSVGElement>('[data-turn-svg]')].map((svg) => ({ svg, show: createTurn(svg) }));
+  for (const { svg, show } of stages) show(Number(svg.dataset.turnAt));
+  const main = stages.find(({ svg }) => 'turnMain' in svg.dataset)!;
+
+  const play = document.querySelector<HTMLButtonElement>('[data-turn-play]')!;
+  const loop = document.querySelector<HTMLInputElement>('[data-turn-loop]')!;
+  const speed = document.querySelector<HTMLSelectElement>('[data-turn-speed]')!;
+  const time = document.querySelector<HTMLInputElement>('[data-turn-time]')!;
+  const clock = document.querySelector<HTMLElement>('[data-turn-clock]')!;
+
+  let clockMs = -HOLD_BEFORE;
+  let frame = 0;
+  let last = 0;
+
+  const show = (ms: number) => {
+    main.show(ms);
+    const shown = Math.min(TURN_MS, Math.max(0, ms));
+    time.value = String(Math.round(shown));
+    clock.textContent = `${Math.round(shown)} ms`;
+  };
+
+  function tick(now: number) {
+    clockMs += Math.min(now - last, 50) * Number(speed.value);
+    last = now;
+    if (clockMs > TURN_MS + HOLD_AFTER) {
+      if (!loop.checked) return void (frame = 0);
+      clockMs = -HOLD_BEFORE;
+    }
+    show(clockMs);
+    frame = requestAnimationFrame(tick);
+  }
+
+  function start() {
+    cancelAnimationFrame(frame);
+    clockMs = -HOLD_BEFORE;
+    last = performance.now();
+    frame = requestAnimationFrame(tick);
+  }
+
+  play.addEventListener('click', start);
+  time.addEventListener('input', () => {
+    cancelAnimationFrame(frame);
+    frame = 0;
+    clockMs = Number(time.value);
+    show(clockMs);
+  });
+
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) start();
+</script>
+
+<style>
+  .turn {
+    display: grid;
+    gap: var(--space-3);
+    padding-block: var(--space-4) var(--space-6);
+  }
+
+  .turn__title {
+    margin: 0;
+    font-size: var(--text-h2);
+    font-weight: 300;
+  }
+
+  .turn__intro {
+    max-width: 40rem;
+    margin: 0;
+  }
+
+  .turn__controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  .turn__button,
+  .turn__controls select {
+    min-height: 2.25rem;
+    padding-inline: var(--space-3);
+    border: 1px solid var(--color-rule);
+    border-radius: 999px;
+    background: var(--color-bg);
+    color: var(--color-text);
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .turn__field {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .turn__field--time input {
+    width: 16rem;
+  }
+
+  .turn__clock {
+    min-width: 4.5rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .turn__h2 {
+    margin: var(--space-4) 0 0;
+  }
+
+  .turn__stage {
+    display: grid;
+    gap: var(--space-1);
+    margin: 0;
+    text-align: center;
+    font-size: var(--text-small);
+  }
+
+  .turn__stage svg {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1;
+    overflow: visible;
+  }
+
+  .turn__main {
+    width: min(36rem, 100%);
+    justify-self: center;
+  }
+
+  /* The filmstrip: seven frames in a row on wide screens, wrapping on narrow ones. */
+  .turn__strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr));
+    gap: var(--space-2);
+  }
+
+  .turn__ring {
+    fill: none;
+    stroke: var(--color-rule);
+    stroke-width: 1.5;
+    vector-effect: non-scaling-stroke;
+  }
+</style>

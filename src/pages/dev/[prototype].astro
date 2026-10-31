@@ -1,0 +1,93 @@
+---
+// Development-only routes for the posture visual-direction prototype at
+// /dev/posture/ and its temporary character sheets at /dev/posture-sheet/
+// (male character) and /dev/posture-sheet-female/ (female character), and the
+// intro ritual's development harness at /dev/posture-intro/, and the homepage
+// intro's development preview at /dev/home-intro/ (with the six-item menu at
+// /dev/home-menu/) and its turn test at
+// /dev/home-intro-turn/, and the posture rig test at
+// /dev/posture-rig/, and the new character's views at
+// /dev/new-character/, and its rig-adapter test at
+// /dev/new-character-rig/, and the female mesh-deformation test at
+// /dev/female-mesh/, and the dot-figure prototype at /dev/dot-figure/.
+// A production build gets no paths, so it emits no page (scripts/check-dist.mjs
+// also fails on any built dev/ page). The components are imported behind
+// import.meta.env.DEV so their CSS isn't bundled either.
+export function getStaticPaths() {
+  return import.meta.env.DEV
+    ? [
+        { params: { prototype: 'posture' } },
+        { params: { prototype: 'posture-sheet' } },
+        { params: { prototype: 'posture-sheet-female' } },
+        { params: { prototype: 'posture-intro' } },
+        { params: { prototype: 'home-intro' } },
+        { params: { prototype: 'home-menu' } },
+        { params: { prototype: 'home-intro-turn' } },
+        { params: { prototype: 'posture-rig' } },
+        { params: { prototype: 'new-character' } },
+        { params: { prototype: 'new-character-rig' } },
+        { params: { prototype: 'female-mesh' } },
+        { params: { prototype: 'dot-figure' } },
+        { params: { prototype: 'up-stretch-concept' } },
+      ]
+    : [];
+}
+
+const character = Astro.params.prototype === 'posture-sheet-female' ? 'female' : 'male';
+const Sheet =
+  import.meta.env.DEV && Astro.params.prototype?.startsWith('posture-sheet')
+    ? (await import('../../prototypes/posture/CharacterSheet.astro')).default
+    : null;
+const Prototype =
+  import.meta.env.DEV && Astro.params.prototype === 'posture'
+    ? (await import('../../prototypes/posture/PosturePrototype.astro')).default
+    : null;
+const Intro =
+  import.meta.env.DEV && Astro.params.prototype === 'posture-intro'
+    ? (await import('../../prototypes/posture/IntroHarness.astro')).default
+    : null;
+const HomeIntro =
+  import.meta.env.DEV && (Astro.params.prototype === 'home-intro' || Astro.params.prototype === 'home-menu')
+    ? (await import('../../prototypes/home-intro/HomeIntroPreview.astro')).default
+    : null;
+const RigTest =
+  import.meta.env.DEV && Astro.params.prototype === 'posture-rig'
+    ? (await import('../../prototypes/posture-rig/RigTest.astro')).default
+    : null;
+const NewCharacter =
+  import.meta.env.DEV && Astro.params.prototype === 'new-character'
+    ? (await import('../../prototypes/new-character/NewCharacter.astro')).default
+    : null;
+const RigAdapterTest =
+  import.meta.env.DEV && Astro.params.prototype === 'new-character-rig'
+    ? (await import('../../prototypes/new-character-rig/RigAdapterTest.astro')).default
+    : null;
+const FemaleMesh =
+  import.meta.env.DEV && Astro.params.prototype === 'female-mesh'
+    ? (await import('../../prototypes/female-mesh/FemaleMesh.astro')).default
+    : null;
+const DotFigure =
+  import.meta.env.DEV && Astro.params.prototype === 'dot-figure'
+    ? (await import('../../prototypes/dot-figure/DotFigure.astro')).default
+    : null;
+const UpStretchConcept =
+  import.meta.env.DEV && Astro.params.prototype === 'up-stretch-concept'
+    ? (await import('../../prototypes/home-intro/UpStretchConcept.astro')).default
+    : null;
+const TurnTest =
+  import.meta.env.DEV && Astro.params.prototype === 'home-intro-turn'
+    ? (await import('../../prototypes/home-intro/TurnTest.astro')).default
+    : null;
+---
+
+{Sheet && <Sheet lang="tr" character={character} />}
+{Prototype && <Prototype lang="tr" />}
+{Intro && <Intro lang="tr" />}
+{HomeIntro && <HomeIntro lang="tr" menu={Astro.params.prototype === 'home-menu' ? 'six' : 'one'} />}
+{TurnTest && <TurnTest lang="tr" />}
+{RigTest && <RigTest lang="tr" />}
+{NewCharacter && <NewCharacter lang="tr" />}
+{RigAdapterTest && <RigAdapterTest lang="tr" />}
+{FemaleMesh && <FemaleMesh lang="tr" />}
+{DotFigure && <DotFigure lang="tr" />}
+{UpStretchConcept && <UpStretchConcept lang="tr" />}

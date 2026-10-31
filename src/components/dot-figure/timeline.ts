@@ -55,8 +55,15 @@ const OPENING_POSE: Resolved = resolve(POSES.halfway).map((angle) => angle * 0.6
  * moved.
  */
 export const HUNCH: Resolved = cascade(OPENING_POSE, resolve(POSES.down), 2720 / 5200, resolve({}));
-/** The title is read over the held hunch: fully shown this long before she starts to straighten (owner, 2026-10-26). */
-const HUNCH_HOLD = 3000;
+/**
+ * The dots' spread out of the centre, and the title's start (owner,
+ * 2026-10-31): intro time 0 is the end of the opening (the spread, then her
+ * lines, LINES_IN), so the title starts this long before it, as she appears.
+ */
+export const EMERGE_MS = 1300;
+const TITLE_IN = -(EMERGE_MS + LINES_IN);
+/** How long after it starts fading in the title starts fading out: its time on screen is as before (owner, 2026-10-26). */
+const TITLE_MS = 3000;
 /** The straightening keeps the approved return to standing's duration (the longest move, 5200 ms): it is meant to be slow. */
 const STRAIGHTEN_MS = durationOf(resolve(POSES.down), resolve(POSES.standing));
 
@@ -90,11 +97,18 @@ const REACH_TOUCH: Resolved = resolve({ ...LEAN, elbow: 5, shoulderR: [-12, 138,
 const REACH_TOP: Resolved = resolve({ ...LEAN, elbow: 5, shoulderR: [-10, 150, 0], elbowR: [2, 63, 0] });
 /** The view for the reach: turned from the approved 70° to 45°, so the raised arm is seen clearly. */
 export const REACH_YAW = 45;
-/** The arm comes up, rises further (slowly), is held there, and comes down. */
-const ARM_UP = 1800;
-const ARM_RISE = 2600;
-const ARM_HOLD = 900;
-const ARM_DOWN = 1800;
+/**
+ * The arm starts up to the crown ARM_LEAD before the first cue starts fading
+ * (all its dots there ARM_UP after it starts, as the fade ends), lengthens up
+ * with the second cue, and starts down ARM_LEAD before that cue starts fading,
+ * ARM_CUE_HOLD after the hand has reached its top; all its dots are down as
+ * the fade ends (owner, 2026-10-31).
+ */
+const ARM_LEAD = 300;
+const ARM_UP = 1500;
+const ARM_RISE = 2390;
+const ARM_CUE_HOLD = 405;
+const ARM_DOWN = 1500;
 /** A breath in and a breath out (owner, 2026-10-26: the breath out takes 3 s, the breath in as long). */
 const BREATH_MS = 3000;
 /**
@@ -202,35 +216,36 @@ function move(to: Resolved, start: number, duration: number, spread: Move['sprea
 
 // ---------- The sequence (intro time, ms) ----------
 
-/** "Sırtını yavaşça düzelt": from the held hunch to standing, the lower back first (3450–8650 ms, its last dots 135 ms later). */
-const STRAIGHTEN = move(resolve(POSES.standing), SENTENCE_FADE + HUNCH_HOLD, STRAIGHTEN_MS);
-fades.push({ at: STRAIGHTEN.start - LINES_OUT, ms: LINES_OUT, to: 0 });
-
 /** Between one sentence fully out and the next fading in. */
 const GAP = 100;
+
+/** "Sırtını yavaşça düzelt": from the held hunch to standing, the lower back first, starting as the cue starts (owner, 2026-10-31). */
+const STRAIGHTEN = move(resolve(POSES.standing), TITLE_IN + TITLE_MS + SENTENCE_FADE + GAP, STRAIGHTEN_MS);
+fades.push({ at: STRAIGHTEN.start - LINES_OUT, ms: LINES_OUT, to: 0 });
+
 /** The next sentence after one that starts fading out at `out`. */
 const after = (out: number) => out + SENTENCE_FADE + GAP;
 
 /**
- * "Başının tepesinden yukarı uzan": once the back is straight, the turn to
- * 45° and the arm up, the hand touching the crown at TOUCH_AT, then
- * lengthening up from it (no stop) to REACH_TOP at TOP_AT (owner,
- * 2026-10-26: 14 610 and 17 000 ms of the scene, which starts OPENING,
- * 2500 ms, before the intro). The hand's dots trail the skeleton by one or
- * two lag levels (HAND), so the skeleton gets there that much earlier. It
- * holds, and comes down as she turns back to 70°, at the same time as before
- * the correction (LOWER_AT), so every later time is unchanged.
+ * "Başının tepesinden yukarı uzan" (owner, 2026-10-31): ARM_LEAD before the
+ * first cue starts fading (CUE_OUT, as the back has settled), the turn to 45°
+ * and the arm up, over the straightening's last moments; the hand is on the
+ * crown with all its dots there (its last trail the skeleton by LAGS − 1
+ * levels) as that fade ends and this cue starts. It lengthens up from there
+ * (no stop) to REACH_TOP and comes down ARM_LEAD before this cue starts fading.
  */
-const CROWN = after(STRAIGHTEN.settled);
-const TOUCH_AT = 12_110;
-const TOP_AT = 14_500;
+const CUE_OUT = STRAIGHTEN.settled;
+const CROWN = CUE_OUT - ARM_LEAD;
+const CROWN_CUE = CROWN + ARM_UP;
+const TOUCH = CROWN_CUE - (LAGS - 1) * LAG;
+const TOP = TOUCH + ARM_RISE;
 const HAND = 1.5 * LAG;
-const LOWER_AT = CROWN + ARM_UP + ARM_RISE + 2 * (LAGS - 1) * LAG + ARM_HOLD;
-move(REACH_TOP, CROWN, TOP_AT - HAND - CROWN, { ...ARM_UP_MOTION, via: REACH_TOUCH, viaAt: (TOUCH_AT - HAND - CROWN) / (TOP_AT - HAND - CROWN) });
-const ARM_LOWER = move(resolve(POSES.standing), LOWER_AT, ARM_DOWN, ARM_DOWN_MOTION);
+const CROWN_CUE_OUT = TOP + HAND + ARM_CUE_HOLD;
+move(REACH_TOP, CROWN, TOP - CROWN, { ...ARM_UP_MOTION, via: REACH_TOUCH, viaAt: (TOUCH - CROWN) / (TOP - CROWN) });
+const ARM_LOWER = move(resolve(POSES.standing), CROWN_CUE_OUT - ARM_LEAD, ARM_DOWN, ARM_DOWN_MOTION);
 
-/** "Derin bir nefes al" once she is back at 70°, arms down and still; "Yavaşça nefes ver" after it. Each breath starts as its cue is fully shown. */
-const BREATH_IN = Math.max(after(ARM_LOWER.start), ARM_LOWER.settled);
+/** "Derin bir nefes al" once she is back at 70°, arms down and still, as the crown cue's fade-out ends; "Yavaşça nefes ver" after it. Each breath starts as its cue is fully shown. */
+const BREATH_IN = ARM_LOWER.settled;
 const INHALE = { at: BREATH_IN + SENTENCE_FADE, ms: BREATH_MS };
 const BREATH_OUT = after(INHALE.at + INHALE.ms);
 const EXHALE = { at: BREATH_OUT + SENTENCE_FADE, ms: BREATH_MS };
@@ -260,17 +275,31 @@ export const REACH_SPAN = { at: CROWN, ms: ARM_LOWER.settled - CROWN };
 /** Her size is set by this shape's room: the reach's former top, so her size stays as it was. */
 export const SIZE_SHAPE: Shape = { pose: REACH_ROOM, yaw: REACH_YAW };
 
+/** A move's pose at time `local`, written into `out`. */
+function moveAt(move: Move, local: number, out: Resolved) {
+  if (local <= move.start) out.set(move.from);
+  else if (typeof move.spread === 'number') cascade(move.from, move.to, (local - move.start) / move.duration, out, move.spread);
+  else armMove(move.from, move.to, move.spread, (local - move.start) / move.duration, out);
+}
+const overlap: Resolved = resolve({});
+
 /**
  * The figure's pose at time t for a lag level (0 leads, LAGS − 1 trails the
  * most), written into `out`.
  */
 export function poseAt(t: number, level: number, out: Resolved) {
   const local = t - level * LAG;
-  const move = moves.find((m) => local < m.start + m.duration);
-  if (!move) out.set(moves[moves.length - 1].to);
-  else if (local <= move.start) out.set(move.from);
-  else if (typeof move.spread === 'number') cascade(move.from, move.to, (local - move.start) / move.duration, out, move.spread);
-  else armMove(move.from, move.to, move.spread, (local - move.start) / move.duration, out);
+  const n = moves.findIndex((m) => local < m.start + m.duration);
+  if (n < 0) out.set(moves[moves.length - 1].to);
+  else {
+    moveAt(moves[n], local, out);
+    // A move that starts before the last has ended adds to it (the arm, over the straightening's last moments).
+    const next = moves[n + 1];
+    if (next && local > next.start) {
+      moveAt(next, local, overlap);
+      for (let k = 0; k < out.length; k++) out[k] += overlap[k] - next.from[k];
+    }
+  }
   // The breath's part on the skeleton, with the follow-through.
   const breath = breathAt(local);
   if (breath > 0) for (let k = 0; k < out.length; k++) out[k] += BREATH_POSE[k] * breath;
@@ -303,22 +332,24 @@ export const breathAt = (t: number): number => ease((t - INHALE.at) / INHALE.ms)
 
 // ---------- The sentences ----------
 
-/** When a sentence is shown: it fades in from `in` and out from `out`, over SENTENCE_FADE ms. */
+/** When a sentence is shown: it fades in from `in` and out from `out`, over SENTENCE_FADE ms, or over `outMs` where a movement fills its fade-out. */
 interface SentenceTiming {
   in: number;
   out: number;
+  outMs?: number;
 }
 
 /**
  * One timing per sentence, in order: the title, then each cue; the last one
- * stays. Only one is ever on screen: each has faded out at least 100 ms
- * before the next fades in. A movement's cue stays until the movement has
- * settled; the next one comes only then.
+ * stays. Only one is ever on screen: each has faded out before the next fades
+ * in. A movement starts with its cue; the arm's moves up to the crown and back
+ * down start just before the fade-outs and end with them, right before the
+ * next cue (owner, 2026-10-31).
  */
 export const sentenceTrack: readonly SentenceTiming[] = [
-  { in: 0, out: STRAIGHTEN.start - SENTENCE_FADE }, // the title, over the held hunch; gone as she starts to straighten
-  { in: STRAIGHTEN.start + GAP, out: STRAIGHTEN.settled }, // straighten your back: until it has finished
-  { in: CROWN, out: ARM_LOWER.start }, // reach up through the crown: until the arm comes down
+  { in: TITLE_IN, out: TITLE_IN + TITLE_MS }, // the title, as she appears; gone just before she starts to straighten
+  { in: STRAIGHTEN.start, out: CUE_OUT, outMs: CROWN_CUE - CUE_OUT }, // straighten your back: with the movement; fades as the arm goes up, gone as it arrives
+  { in: CROWN_CUE, out: CROWN_CUE_OUT, outMs: ARM_LOWER.settled - CROWN_CUE_OUT }, // reach up through the crown: as the hand is on it; fades as the arm comes down, gone as it arrives
   { in: BREATH_IN, out: INHALE.at + INHALE.ms }, // breathe in: until the breath is full
   { in: BREATH_OUT, out: Infinity }, // breathe out: to the end
 ];
@@ -355,5 +386,5 @@ export function sentenceOpacity(sentence: number, t: number) {
   const timing = sentenceTrack[sentence];
   if (!timing) return 0;
   const clamp = (n: number) => Math.min(1, Math.max(0, n));
-  return ease(clamp((t - timing.in) / SENTENCE_FADE)) * (1 - ease(clamp((t - timing.out) / SENTENCE_FADE)));
+  return ease(clamp((t - timing.in) / SENTENCE_FADE)) * (1 - ease(clamp((t - timing.out) / (timing.outMs ?? SENTENCE_FADE))));
 }

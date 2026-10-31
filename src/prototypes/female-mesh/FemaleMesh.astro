@@ -1,0 +1,847 @@
+---
+// Dev-only mesh-deformation prototype (2026-10-24), at /dev/female-mesh/ and
+// /en/dev/female-mesh/, rendered by the dev routes in
+// src/pages/dev/[prototype].astro and src/pages/en/dev/[prototype].astro.
+// The female body-parts sheet's side figure
+// (reference_assets/kadın_karakter_body_parts_v2.png) as one continuous
+// textured triangle mesh, skinned to a pelvis, thirteen spinal control
+// regions and a head (./rig.ts), rolling down and back up; the near arm is a
+// separate rigid piece. The textures come from
+// ../../../../female-mesh-assets/tools/extract.py: the arm was cut out and the
+// torso behind it rebuilt as placeholder artwork. Not connected to / or /en/,
+// the homepage intro, its preview or any approved character.
+import type { Lang } from '../../i18n/ui';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import armImage from './assets/side-arm.png';
+import bodyImage from './assets/side-body-reconstructed.png';
+import rebuiltImage from './assets/side-reconstructed-region.png';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const translations = { tr: '/dev/female-mesh/', en: '/en/dev/female-mesh/' };
+const stills = [0, 0.25, 0.5, 0.75, 1];
+
+const t = {
+  tr: {
+    title: 'Kadın karakter: gövde ağı deformasyon testi',
+    intro:
+      'Parça sayfasındaki yan görünüm figürü, tek parça sürekli bir üçgen ağ olarak çiziliyor. Ağ; leğen kemiği (kalçada döner), 13 omurga kontrol bölgesi (L5–L1, altı torasik çift, iki servikal grup) ve baş kemiğine ağırlıklarla bağlı; her nokta omurga boyunca konumuna göre komşu bölgelere yumuşak geçişle bölünür. Bacaklar kalça çizgisinin altında sabit, baş çene çizgisinin üstünde tek parça döner. Yakın kol ayrı, katı bir parça; omuzdan asılı.',
+    scope:
+      'Yalnızca bu test sayfası. Ana sayfa, giriş animasyonu, onaylı karakterler ve kaynak PNG değişmedi. Kolun arkasında kalan gövde (sırt çizgisi omuzdan bele kadar, sırt paneli, bel) kaynakta yok; geçici olarak yeniden çizildi (düz renk), işaretle görülebilir.',
+    play: 'Oynat',
+    pause: 'Duraklat',
+    replay: 'Baştan',
+    speed: 'Hız',
+    progress: 'Eğilme',
+    stills: 'Kareler',
+    view: 'Görünüm',
+    views: { whole: 'Tüm figür', follow: 'Sırt ortası ×2,5 (izler)' },
+    wire: 'Ağ (tel kafes)',
+    skeleton: 'İskelet ve eklemler',
+    ghost: 'Dik duruş (hayalet)',
+    arm: 'Kol',
+    rebuilt: 'Yeniden çizilen alan',
+    weights: 'Ağırlıklar',
+    weightModes: { off: 'Kapalı', regions: 'Kontrol bölgeleri', bone: 'Seçili kemik' },
+    falloff: 'Geçiş genişliği',
+    hang: 'Kolun sarkması',
+    spacing: 'Ağ aralığı',
+    bones: 'Kemikler (bir satıra tıklayınca ağırlığı gösterilir; azami açı düzenlenebilir)',
+    cols: ['#', 'Bölge', 'Pivot (sayfa px)', 'Azami °', 'Şimdi °'],
+    stats: 'Ağ',
+    hover: 'İmlecin altındaki nokta',
+    drag: 'Dik duruşta (Eğilme = 0) eklem noktaları sürüklenebilir; ağırlıklar yeniden hesaplanır.',
+    json: 'İskelet (JSON, sayfa pikseli)',
+    reset: 'İskeleti sıfırla',
+    look: 'Bakılacaklar',
+    lookItems: [
+      'Sırt eğrisi tek parça bükülüyor mu; bölge sınırlarında kırılma ya da basamak var mı (Ağ + Kontrol bölgeleri açıkken).',
+      'Kalça kıvrımında karın öne doğru sıkışır; katlanan üçgen sayısı "Ağ" satırında.',
+      'Kol katı: omuz başındaki kesik kenar yumuşatıldı ama kol döndükçe altındaki yeniden çizilmiş sırt görünür.',
+      'Uzak kol ve uzak bacağın gizli kısmı çizilmedi.',
+    ],
+    noGl: 'Bu tarayıcıda WebGL yok; test çalışamaz.',
+  },
+  en: {
+    title: 'Female character: torso mesh deformation test',
+    intro:
+      'The parts sheet’s side figure drawn as one continuous triangle mesh. The mesh is weighted to a pelvis (turning at the hip), 13 spinal control regions (L5–L1, six thoracic pairs, two cervical groups) and a head; each point is split between neighbouring regions by where it lies along the spine, with a smooth falloff. The legs stay still below the hip line; the head turns as one above the jaw line. The near arm is a separate rigid piece hung from the shoulder.',
+    scope:
+      'This test page only. The homepage, the intro animation, the approved characters and the source PNG are unchanged. The torso behind the arm (the back contour from shoulder to waist, the top’s back panel, the waist) is not in the source; it is rebuilt as flat-colour placeholder artwork, which can be highlighted.',
+    play: 'Play',
+    pause: 'Pause',
+    replay: 'Restart',
+    speed: 'Speed',
+    progress: 'Bend',
+    stills: 'Frames',
+    view: 'View',
+    views: { whole: 'Whole figure', follow: 'Mid-back ×2.5 (follows)' },
+    wire: 'Mesh (wireframe)',
+    skeleton: 'Skeleton and joints',
+    ghost: 'Upright pose (ghost)',
+    arm: 'Arm',
+    rebuilt: 'Rebuilt area',
+    weights: 'Weights',
+    weightModes: { off: 'Off', regions: 'Control regions', bone: 'Selected bone' },
+    falloff: 'Falloff',
+    hang: 'Arm hang',
+    spacing: 'Mesh spacing',
+    bones: 'Bones (click a row to show its weights; the maximum angle is editable)',
+    cols: ['#', 'Region', 'Pivot (sheet px)', 'Max °', 'Now °'],
+    stats: 'Mesh',
+    hover: 'Point under the pointer',
+    drag: 'Upright (Bend = 0), the joints can be dragged; the weights are recomputed.',
+    json: 'Rig (JSON, sheet pixels)',
+    reset: 'Reset rig',
+    look: 'What to look at',
+    lookItems: [
+      'Does the back curve bend in one piece, with no kinks or steps at region borders (with Mesh and Control regions on)?',
+      'At the hip crease the belly compresses forwards; the count of folded triangles is on the “Mesh” line.',
+      'The arm is rigid: its cut at the shoulder is feathered, but as it turns the rebuilt back under it shows.',
+      'The far arm and the hidden parts of the far leg are not drawn.',
+    ],
+    noGl: 'This browser has no WebGL; the test cannot run.',
+  },
+}[lang];
+---
+
+<BaseLayout title={`${t.title} (dev)`} translations={translations} lockup>
+  <div
+    class="fm container"
+    data-dev-only
+    data-fm-root
+    data-body={bodyImage.src}
+    data-arm={armImage.src}
+    data-rebuilt={rebuiltImage.src}
+    data-play-label={t.play}
+    data-pause-label={t.pause}
+  >
+    <h1 class="fm__title">{t.title}</h1>
+    <p class="fm__intro">{t.intro}</p>
+    <p class="fm__intro fm__note">{t.scope}</p>
+
+    <div class="fm__controls ui">
+      <button type="button" class="fm__button" data-fm-play>{t.play}</button>
+      <button type="button" class="fm__button" data-fm-replay>{t.replay}</button>
+      <label class="fm__field">
+        {t.speed}
+        <select data-fm-speed>
+          <option value="1">1×</option>
+          <option value="0.5">0.5×</option>
+          <option value="0.25">0.25×</option>
+        </select>
+      </label>
+      <label class="fm__field fm__field--wide">
+        {t.progress}
+        <input type="range" min="0" max="1" step="0.001" value="0" data-fm-progress />
+        <output data-fm-progress-out>0.000</output>
+      </label>
+    </div>
+    <div class="fm__controls ui">
+      <span>{t.stills}:</span>
+      {stills.map((p) => <button type="button" class="fm__button fm__button--small" data-fm-still={p}>{p}</button>)}
+      <label class="fm__field">
+        {t.view}
+        <select data-fm-view>
+          <option value="whole">{t.views.whole}</option>
+          <option value="follow">{t.views.follow}</option>
+        </select>
+      </label>
+    </div>
+    <div class="fm__controls ui">
+      <label class="fm__field"><input type="checkbox" data-fm-wire /> {t.wire}</label>
+      <label class="fm__field"><input type="checkbox" data-fm-skeleton checked /> {t.skeleton}</label>
+      <label class="fm__field"><input type="checkbox" data-fm-ghost /> {t.ghost}</label>
+      <label class="fm__field"><input type="checkbox" data-fm-arm checked /> {t.arm}</label>
+      <label class="fm__field"><input type="checkbox" data-fm-rebuilt /> {t.rebuilt}</label>
+      <label class="fm__field">
+        {t.weights}
+        <select data-fm-weights>
+          <option value="off">{t.weightModes.off}</option>
+          <option value="regions">{t.weightModes.regions}</option>
+          <option value="bone">{t.weightModes.bone}</option>
+        </select>
+      </label>
+    </div>
+    <div class="fm__controls ui">
+      <label class="fm__field">
+        {t.falloff}
+        <input type="range" min="0.2" max="2" step="0.05" value="0.7" data-fm-falloff />
+        <output data-fm-falloff-out>0.70</output>
+      </label>
+      <label class="fm__field">
+        {t.hang}
+        <input type="range" min="0" max="1" step="0.05" value="0.8" data-fm-hang />
+        <output data-fm-hang-out>0.80</output>
+      </label>
+      <label class="fm__field">
+        {t.spacing}
+        <select data-fm-spacing>
+          <option value="4">4 px</option>
+          <option value="6" selected>6 px</option>
+          <option value="8">8 px</option>
+          <option value="12">12 px</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="fm__main">
+      <div class="fm__stage">
+        <canvas data-fm-gl></canvas>
+        <canvas data-fm-overlay></canvas>
+        <p class="fm__nogl" hidden data-fm-nogl>{t.noGl}</p>
+      </div>
+      <div class="fm__side ui">
+        <p class="fm__readout"><strong>{t.stats}:</strong> <span data-fm-stats></span></p>
+        <p class="fm__readout"><strong>{t.hover}:</strong> <span data-fm-hover>–</span></p>
+        <p class="fm__note">{t.drag}</p>
+        <p class="fm__note">{t.bones}</p>
+        <table class="fm__table">
+          <thead>
+            <tr>{t.cols.map((c) => <th scope="col">{c}</th>)}</tr>
+          </thead>
+          <tbody data-fm-bones></tbody>
+        </table>
+        <button type="button" class="fm__button" data-fm-reset>{t.reset}</button>
+        <label class="fm__json">
+          {t.json}
+          <textarea readonly rows="8" data-fm-json></textarea>
+        </label>
+      </div>
+    </div>
+
+    <h2 class="fm__h2 ui">{t.look}</h2>
+    <ul class="fm__intro fm__note">
+      {t.lookItems.map((item) => <li>{item}</li>)}
+    </ul>
+  </div>
+</BaseLayout>
+
+<script>
+  import { buildMesh, triangleStats, type Mesh } from './mesh';
+  import { boneColour, createRenderer, type Layer, type View } from './renderer';
+  import {
+    anglesAt,
+    apply,
+    BONES,
+    computeWeights,
+    defaultRig,
+    ORIGIN,
+    pose,
+    rigJson,
+    skin,
+    type Pt,
+    type Rig,
+  } from './rig';
+
+  const root = document.querySelector<HTMLElement>('[data-fm-root]')!;
+  const q = <T extends Element>(selector: string) => root.querySelector<T>(selector)!;
+  const glCanvas = q<HTMLCanvasElement>('[data-fm-gl]');
+  const overlay = q<HTMLCanvasElement>('[data-fm-overlay]');
+  const ctx = overlay.getContext('2d')!;
+
+  const loadImage = (src: string) =>
+    new Promise<HTMLImageElement>((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = reject;
+      image.src = src;
+    });
+
+  function alphaOf(image: HTMLImageElement) {
+    const c = document.createElement('canvas');
+    c.width = image.width;
+    c.height = image.height;
+    const g = c.getContext('2d')!;
+    g.drawImage(image, 0, 0);
+    const data = g.getImageData(0, 0, c.width, c.height).data;
+    const alpha = new Uint8ClampedArray(c.width * c.height);
+    for (let i = 0; i < alpha.length; i++) alpha[i] = data[4 * i + 3];
+    return alpha;
+  }
+
+  /** The arm as one quad over its opaque box. */
+  function armQuad(alpha: Uint8ClampedArray, w: number, h: number) {
+    let x0 = w;
+    let y0 = h;
+    let x1 = 0;
+    let y1 = 0;
+    for (let y = 0; y < h; y++)
+      for (let x = 0; x < w; x++)
+        if (alpha[y * w + x]) {
+          x0 = Math.min(x0, x);
+          y0 = Math.min(y0, y);
+          x1 = Math.max(x1, x + 1);
+          y1 = Math.max(y1, y + 1);
+        }
+    const rest = new Float32Array([x0, y0, x1, y0, x1, y1, x0, y1]);
+    const uv = new Float32Array([x0 / w, y0 / h, x1 / w, y0 / h, x1 / w, y1 / h, x0 / w, y1 / h]);
+    return { rest, uv, indices: new Uint16Array([0, 1, 2, 0, 2, 3]) };
+  }
+
+  const [bodyImg, armImg, rebuiltImg] = await Promise.all([
+    loadImage(root.dataset.body!),
+    loadImage(root.dataset.arm!),
+    loadImage(root.dataset.rebuilt!),
+  ]);
+  const W = bodyImg.width;
+  const H = bodyImg.height;
+  const bodyAlpha = alphaOf(bodyImg);
+  const arm = armQuad(alphaOf(armImg), armImg.width, armImg.height);
+
+  let renderer: ReturnType<typeof createRenderer>;
+  try {
+    renderer = createRenderer(glCanvas);
+  } catch {
+    q<HTMLElement>('[data-fm-nogl]').hidden = false;
+    throw new Error('WebGL unavailable');
+  }
+
+  // --- state
+  const bones = BONES.map((b) => ({ ...b }));
+  let rig: Rig = defaultRig();
+  let mesh: Mesh;
+  let weights: Float32Array;
+  let deformed: Float32Array;
+  let bodyLayer: Layer;
+  let rebuiltLayer: Layer;
+  const armLayer = renderer.layer(armImg, arm.uv, arm.indices);
+  const armPos = new Float32Array(8);
+  let selected = 8;
+  let progress = 0;
+  let playing = false;
+  let rate = 1;
+  let clock = 0; // ms into the cycle
+  let hover: Pt | null = null;
+  let dragging = -1;
+  let skinMs = 0;
+
+  // Cycle: hold upright, roll down, hold, roll back up (bottom first), hold.
+  const CYCLE = [1000, 4000, 1500, 4000, 1000];
+  const TOTAL = CYCLE.reduce((a, b) => a + b);
+  function progressAt(ms: number) {
+    const [a, b, c, d] = CYCLE;
+    if (ms < a) return 0;
+    if (ms < a + b) return (ms - a) / b;
+    if (ms < a + b + c) return 1;
+    if (ms < a + b + c + d) return 1 - (ms - a - b - c) / d;
+    return 0;
+  }
+
+  function rebuild(spacing: number) {
+    mesh = buildMesh(bodyAlpha, W, H, spacing);
+    bodyLayer = renderer.layer(bodyImg, mesh.uv, mesh.indices);
+    rebuiltLayer = renderer.layer(rebuiltImg, mesh.uv, mesh.indices);
+    deformed = new Float32Array(mesh.rest.length);
+    reweigh();
+  }
+
+  function reweigh() {
+    weights = computeWeights(rig, mesh.rest);
+    recolour();
+    q<HTMLTextAreaElement>('[data-fm-json]').value = JSON.stringify(rigJson(rig, bones), null, 1);
+    renderTable();
+  }
+
+  function recolour() {
+    const mode = q<HTMLSelectElement>('[data-fm-weights]').value;
+    const n = mesh.rest.length / 2;
+    const nb = bones.length;
+    const colours = new Float32Array(n * 4);
+    for (let v = 0; v < n; v++) {
+      let r = 0;
+      let g = 0;
+      let b = 0;
+      let a = 0;
+      if (mode === 'regions') {
+        for (let i = 0; i < nb; i++) {
+          const w = weights[v * nb + i];
+          const [cr, cg, cb] = boneColour(i, nb);
+          r += w * cr;
+          g += w * cg;
+          b += w * cb;
+          a += w;
+        }
+        // legs (no bone): grey
+        r += (1 - a) * 0.6;
+        g += (1 - a) * 0.6;
+        b += (1 - a) * 0.6;
+        a = 0.6;
+      } else if (mode === 'bone') {
+        const w = weights[v * nb + selected];
+        // 0 → blue, 1 → red
+        r = w;
+        g = 0.15 + 0.5 * (1 - Math.abs(2 * w - 1));
+        b = 1 - w;
+        a = 0.65;
+      }
+      colours.set([r, g, b, a], v * 4);
+    }
+    renderer.setColors(bodyLayer, colours);
+    const magenta = new Float32Array(n * 4);
+    for (let v = 0; v < n; v++) magenta.set([1, 0, 0.6, 0.85], v * 4);
+    renderer.setColors(rebuiltLayer, magenta);
+  }
+
+  // --- table
+  const tbody = q<HTMLTableSectionElement>('[data-fm-bones]');
+  function renderTable() {
+    tbody.replaceChildren(
+      ...bones.map((bone, i) => {
+        const tr = document.createElement('tr');
+        tr.dataset.bone = String(i);
+        if (i === selected) tr.setAttribute('aria-selected', 'true');
+        const [cr, cg, cb] = boneColour(i, bones.length);
+        const sw = document.createElement('span');
+        sw.className = 'fm__swatch';
+        sw.style.background = `rgb(${cr * 255}, ${cg * 255}, ${cb * 255})`;
+        const td = (content: Node | string) => {
+          const cell = document.createElement('td');
+          cell.append(content);
+          return cell;
+        };
+        const idx = td(sw);
+        idx.append(` ${i}`);
+        const [px, py] = rig.joints[i];
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.step = '1';
+        input.min = '-30';
+        input.max = '120';
+        input.value = String(bone.max);
+        input.ariaLabel = `${bone.name} max`;
+        input.addEventListener('change', () => {
+          bone.max = Number(input.value);
+          q<HTMLTextAreaElement>('[data-fm-json]').value = JSON.stringify(rigJson(rig, bones), null, 1);
+        });
+        const now = td('0');
+        now.dataset.now = '';
+        tr.append(
+          idx,
+          td(bone.spinal ? bone.name : `${bone.name}`),
+          td(`${(px + ORIGIN[0]).toFixed(0)}, ${(py + ORIGIN[1]).toFixed(0)}`),
+          td(input),
+          now,
+        );
+        tr.addEventListener('click', (event) => {
+          if ((event.target as Element).tagName === 'INPUT') return;
+          selected = i;
+          q<HTMLSelectElement>('[data-fm-weights]').value = 'bone';
+          recolour();
+          renderTable();
+        });
+        return tr;
+      }),
+    );
+  }
+
+  // --- view
+  function currentView(boneMats: ReturnType<typeof pose>['bones']): View {
+    const cssW = glCanvas.clientWidth;
+    const cssH = glCanvas.clientHeight;
+    const aspect = cssW / cssH;
+    if (q<HTMLSelectElement>('[data-fm-view]').value === 'follow') {
+      const [cx, cy] = apply(boneMats[8], ...rig.joints[8]);
+      const h = 260;
+      return { x: cx - (h * aspect) / 2, y: cy - h / 2, w: h * aspect, h };
+    }
+    // the whole figure, upright and bent: x −20 … 440, y 0 … H
+    const h = H + 10;
+    const w = Math.max(460, h * aspect);
+    return { x: -20 - (w - 460) / 2, y: -5, w, h: w / aspect };
+  }
+
+  function frame() {
+    const angles = anglesAt(progress, bones);
+    const hang = Number(q<HTMLInputElement>('[data-fm-hang]').value);
+    const { bones: mats, arm: armMat } = pose(rig, angles, hang);
+    const t0 = performance.now();
+    skin(mesh.rest, weights, mats, deformed);
+    skinMs = performance.now() - t0;
+    for (let k = 0; k < 4; k++) {
+      const [x, y] = apply(armMat, arm.rest[2 * k], arm.rest[2 * k + 1]);
+      armPos[2 * k] = x;
+      armPos[2 * k + 1] = y;
+    }
+    const view = currentView(mats);
+    renderer.begin(view);
+    if (q<HTMLInputElement>('[data-fm-ghost]').checked) {
+      renderer.setPositions(bodyLayer, mesh.rest);
+      renderer.draw(bodyLayer, 0, 0.18);
+    }
+    renderer.setPositions(bodyLayer, deformed);
+    renderer.draw(bodyLayer);
+    const mode = q<HTMLSelectElement>('[data-fm-weights]').value;
+    if (mode !== 'off') renderer.draw(bodyLayer, 1);
+    if (q<HTMLInputElement>('[data-fm-rebuilt]').checked) {
+      renderer.setPositions(rebuiltLayer, deformed);
+      renderer.draw(rebuiltLayer, 1, 0.8);
+    }
+    if (q<HTMLInputElement>('[data-fm-arm]').checked) {
+      renderer.setPositions(armLayer, armPos);
+      renderer.draw(armLayer);
+    }
+    drawOverlay(view, mats, angles);
+  }
+
+  function drawOverlay(view: View, mats: ReturnType<typeof pose>['bones'], angles: number[]) {
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    const cw = Math.round(overlay.clientWidth * dpr);
+    const ch = Math.round(overlay.clientHeight * dpr);
+    if (overlay.width !== cw || overlay.height !== ch) {
+      overlay.width = cw;
+      overlay.height = ch;
+    }
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, cw, ch);
+    const k = cw / view.w;
+    ctx.setTransform(k, 0, 0, k, -view.x * k, -view.y * k);
+    const px = 1 / k;
+    if (q<HTMLInputElement>('[data-fm-wire]').checked) {
+      ctx.strokeStyle = 'rgba(20, 30, 60, 0.45)';
+      ctx.lineWidth = 0.7 * px * dpr;
+      ctx.beginPath();
+      const e = mesh.edges;
+      for (let i = 0; i < e.length; i += 2) {
+        ctx.moveTo(deformed[2 * e[i]], deformed[2 * e[i] + 1]);
+        ctx.lineTo(deformed[2 * e[i + 1]], deformed[2 * e[i + 1] + 1]);
+      }
+      ctx.stroke();
+    }
+    if (q<HTMLInputElement>('[data-fm-skeleton]').checked) {
+      // joint i turns with bone i − 1 (its parent); the hip with the legs
+      const world = rig.joints.map((p, i) => (i === 0 ? p : apply(mats[Math.min(i - 1, mats.length - 1)], ...p)));
+      ctx.lineWidth = 2 * px * dpr;
+      for (let i = 0; i < bones.length; i++) {
+        const [r, g, b] = boneColour(i, bones.length);
+        ctx.strokeStyle = `rgb(${r * 255}, ${g * 255}, ${b * 255})`;
+        ctx.beginPath();
+        ctx.moveTo(...world[i]);
+        ctx.lineTo(...world[i + 1]);
+        ctx.stroke();
+      }
+      for (let i = 0; i < world.length; i++) {
+        ctx.fillStyle = i === dragging ? 'rgb(255, 200, 0)' : 'rgb(255, 255, 255)';
+        ctx.strokeStyle = 'rgb(20, 30, 60)';
+        ctx.lineWidth = 1 * px * dpr;
+        ctx.beginPath();
+        ctx.arc(world[i][0], world[i][1], 2.6 * px * dpr, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
+      const shoulder = apply(mats[11], ...rig.shoulder);
+      ctx.fillStyle = 'rgb(0, 160, 120)';
+      ctx.beginPath();
+      ctx.arc(shoulder[0], shoulder[1], 2.4 * px * dpr, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // readouts
+    const s = triangleStats(mesh, deformed);
+    q<HTMLElement>('[data-fm-stats]').textContent =
+      `${mesh.rest.length / 2} vertices, ${s.triangles} triangles, ${bones.length} bones (13 spinal); area ×${s.min.toFixed(2)}–×${s.max.toFixed(2)}, folded ${s.folded}; skinning ${skinMs.toFixed(2)} ms`;
+    for (const cell of tbody.querySelectorAll<HTMLElement>('[data-now]')) {
+      const i = Number(cell.parentElement!.dataset.bone);
+      cell.textContent = ((angles[i] * 180) / Math.PI).toFixed(1);
+    }
+    if (hover) {
+      let best = -1;
+      let bd = Infinity;
+      for (let v = 0; v < deformed.length / 2; v++) {
+        const d = Math.hypot(deformed[2 * v] - hover[0], deformed[2 * v + 1] - hover[1]);
+        if (d < bd) {
+          bd = d;
+          best = v;
+        }
+      }
+      if (bd < 8) {
+        const nb = bones.length;
+        const list = bones
+          .map((b, i) => [b.name, weights[best * nb + i]] as const)
+          .filter(([, w]) => w > 0.01)
+          .sort((a, b) => b[1] - a[1])
+          .map(([n, w]) => `${n} ${w.toFixed(2)}`);
+        const sum = bones.reduce((acc, _, i) => acc + weights[best * nb + i], 0);
+        if (sum < 0.99) list.push(`legs ${(1 - sum).toFixed(2)}`);
+        const [rx, ry] = [mesh.rest[2 * best] + ORIGIN[0], mesh.rest[2 * best + 1] + ORIGIN[1]];
+        q<HTMLElement>('[data-fm-hover]').textContent = `#${best} (${rx}, ${ry}): ${list.join(', ')}`;
+        ctx.strokeStyle = 'rgb(255, 200, 0)';
+        ctx.lineWidth = 1.5 * px * dpr;
+        ctx.beginPath();
+        ctx.arc(deformed[2 * best], deformed[2 * best + 1], 3 * px * dpr, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+  }
+
+  // --- interaction
+  const playButton = q<HTMLButtonElement>('[data-fm-play]');
+  const progressInput = q<HTMLInputElement>('[data-fm-progress]');
+  const progressOut = q<HTMLOutputElement>('[data-fm-progress-out]');
+  function setPlaying(on: boolean) {
+    playing = on;
+    playButton.textContent = on ? root.dataset.pauseLabel! : root.dataset.playLabel!;
+  }
+  function setProgress(p: number) {
+    progress = p;
+    progressInput.value = String(p);
+    progressOut.value = p.toFixed(3);
+  }
+  playButton.addEventListener('click', () => setPlaying(!playing));
+  q<HTMLButtonElement>('[data-fm-replay]').addEventListener('click', () => {
+    clock = 0;
+    setPlaying(true);
+  });
+  q<HTMLSelectElement>('[data-fm-speed]').addEventListener('change', (e) => (rate = Number((e.target as HTMLSelectElement).value)));
+  progressInput.addEventListener('input', () => {
+    setPlaying(false);
+    setProgress(Number(progressInput.value));
+  });
+  for (const button of root.querySelectorAll<HTMLButtonElement>('[data-fm-still]')) {
+    button.addEventListener('click', () => {
+      setPlaying(false);
+      setProgress(Number(button.dataset.fmStill));
+    });
+  }
+  q<HTMLSelectElement>('[data-fm-weights]').addEventListener('change', recolour);
+  const falloff = q<HTMLInputElement>('[data-fm-falloff]');
+  falloff.addEventListener('input', () => {
+    rig.falloff = Number(falloff.value);
+    q<HTMLOutputElement>('[data-fm-falloff-out]').value = rig.falloff.toFixed(2);
+    reweigh();
+  });
+  const hang = q<HTMLInputElement>('[data-fm-hang]');
+  hang.addEventListener('input', () => (q<HTMLOutputElement>('[data-fm-hang-out]').value = Number(hang.value).toFixed(2)));
+  q<HTMLSelectElement>('[data-fm-spacing]').addEventListener('change', (e) => rebuild(Number((e.target as HTMLSelectElement).value)));
+  q<HTMLButtonElement>('[data-fm-reset]').addEventListener('click', () => {
+    rig = defaultRig();
+    rig.falloff = Number(falloff.value);
+    reweigh();
+  });
+
+  function toWorld(event: PointerEvent): Pt {
+    const box = overlay.getBoundingClientRect();
+    const { bones: mats } = pose(rig, anglesAt(progress, bones), 0);
+    const view = currentView(mats);
+    return [view.x + ((event.clientX - box.left) / box.width) * view.w, view.y + ((event.clientY - box.top) / box.height) * view.h];
+  }
+  overlay.addEventListener('pointermove', (event) => {
+    hover = toWorld(event);
+    if (dragging >= 0) {
+      rig.joints[dragging] = [Math.round(hover[0] * 2) / 2, Math.round(hover[1] * 2) / 2];
+      reweigh();
+    }
+  });
+  overlay.addEventListener('pointerleave', () => (hover = null));
+  overlay.addEventListener('pointerdown', (event) => {
+    if (progress !== 0 || !q<HTMLInputElement>('[data-fm-skeleton]').checked) return;
+    const p = toWorld(event);
+    const box = overlay.getBoundingClientRect();
+    const { bones: mats } = pose(rig, anglesAt(0, bones), 0);
+    const scale = currentView(mats).w / box.width;
+    let best = -1;
+    let bd = 8 * scale;
+    rig.joints.forEach(([x, y], i) => {
+      const d = Math.hypot(x - p[0], y - p[1]);
+      if (d < bd) {
+        bd = d;
+        best = i;
+      }
+    });
+    if (best >= 0) {
+      dragging = best;
+      overlay.setPointerCapture(event.pointerId);
+    }
+  });
+  overlay.addEventListener('pointerup', () => (dragging = -1));
+
+  let last = performance.now();
+  function tick(now: number) {
+    const dt = Math.min(50, now - last);
+    last = now;
+    if (playing) {
+      clock = (clock + dt * rate) % TOTAL;
+      setProgress(progressAt(clock));
+    }
+    frame();
+    requestAnimationFrame(tick);
+  }
+
+  rebuild(6);
+  // Expose for console checks.
+  (window as unknown as { __mesh: unknown }).__mesh = {
+    get mesh() {
+      return mesh;
+    },
+    get weights() {
+      return weights;
+    },
+    get deformed() {
+      return deformed;
+    },
+    rig: () => rig,
+    setProgress,
+    frame,
+  };
+  requestAnimationFrame(tick);
+</script>
+
+<style>
+  .fm {
+    display: grid;
+    gap: var(--space-3);
+    padding-block: var(--space-4) var(--space-6);
+  }
+
+  .fm__title {
+    margin: 0;
+    font-size: var(--text-h2);
+    font-weight: 300;
+  }
+
+  .fm__intro {
+    max-width: 48rem;
+    margin: 0;
+  }
+
+  .fm__note {
+    margin: 0;
+    font-size: var(--text-small);
+    color: var(--color-muted);
+  }
+
+  .fm__h2 {
+    margin: var(--space-3) 0 0;
+  }
+
+  .fm__controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-3);
+  }
+
+  .fm__field {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .fm__field--wide input {
+    width: min(20rem, 55vw);
+  }
+
+  .fm__field output {
+    min-width: 3.5em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .fm__button,
+  .fm__controls select {
+    min-height: 2.25rem;
+    padding-inline: var(--space-3);
+    border: 1px solid var(--color-rule);
+    border-radius: 999px;
+    background: var(--color-bg);
+    color: var(--color-text);
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .fm__button--small {
+    min-height: 2rem;
+    padding-inline: var(--space-2);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .fm__main {
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    gap: var(--space-4);
+    align-items: start;
+  }
+
+  @media (max-width: 52rem) {
+    .fm__main {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  .fm__stage {
+    position: relative;
+    aspect-ratio: 460 / 670;
+    border: 1px solid var(--color-rule);
+    background: var(--color-surface);
+  }
+
+  .fm__stage canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .fm__stage canvas[data-fm-overlay] {
+    touch-action: none;
+  }
+
+  .fm__side {
+    display: grid;
+    gap: var(--space-2);
+    font-size: var(--text-small);
+  }
+
+  .fm__readout {
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .fm__table {
+    border-collapse: collapse;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .fm__table th,
+  .fm__table td {
+    padding: 0.15rem 0.4rem;
+    border-bottom: 1px solid var(--color-rule);
+    text-align: left;
+  }
+
+  .fm__table tbody tr {
+    cursor: pointer;
+  }
+
+  .fm__table tr[aria-selected='true'] {
+    background: var(--color-panel);
+  }
+
+  .fm__table input {
+    width: 4.5em;
+    font: inherit;
+  }
+
+  .fm__table :global(.fm__swatch) {
+    display: inline-block;
+    width: 0.7em;
+    height: 0.7em;
+    border-radius: 50%;
+  }
+
+  .fm__json {
+    display: grid;
+    gap: var(--space-1);
+  }
+
+  .fm__json textarea {
+    width: 100%;
+    font: 0.75rem/1.3 ui-monospace, monospace;
+  }
+
+  .fm__nogl {
+    position: absolute;
+    inset: auto var(--space-3) var(--space-3);
+  }
+</style>

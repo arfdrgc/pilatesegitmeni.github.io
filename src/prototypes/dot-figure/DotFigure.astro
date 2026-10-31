@@ -1,0 +1,841 @@
+---
+// Dev-only dot-figure prototype (2026-10-25), at /dev/dot-figure/ and
+// /en/dev/dot-figure/, rendered by the dev routes in
+// src/pages/dev/[prototype].astro and src/pages/en/dev/[prototype].astro.
+// An abstract figure made only of small pastel circles, after
+// reference_assets/human-dots-figure.jpg: a seeded 3D dot volume on a
+// skeleton (src/components/dot-figure/model.ts), projected for any viewing
+// angle onto 2D canvases (src/components/dot-figure/render.ts), standing and
+// rolling down. The dots move unconnected; thin lines between neighbours fade
+// in only once a pose has settled, and fade out before the next movement
+// starts. Approved on 2026-10-25; the model, renderer and palettes now live in
+// src/components/dot-figure/, shared with the development homepage intro at
+// /dev/home-intro/ (../../components/home-intro/dotScene.ts). This page stays
+// the review tool for the figure's settings.
+import type { Lang } from '../../i18n/ui';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const translations = { tr: '/dev/dot-figure/', en: '/en/dev/dot-figure/' };
+const angles = [0, 45, 90, 135, 180] as const;
+
+const t = {
+  tr: {
+    title: 'Nokta figür: çok açılı prototip',
+    intro:
+      'Yalnızca küçük, bağımsız dairelerden oluşan soyut bir figür. Noktalar üç boyutlu bir beden hacmine sabit bir tohumla bir kez yerleştirilir ve iskeletin kemiklerine bağlanır; her görüş açısı için ekrana iz düşürülüp düz daireler olarak çizilir. Hareket sırasında noktalar birbirine bağlı değildir; çizgiler yalnızca poz oturduktan sonra belirir ve bir sonraki hareketten önce kaybolur.',
+    scope:
+      'Yalnızca bu test sayfası. Ana sayfa, giriş animasyonu, onaylı karakterler ve renk belirteçleri değişmedi; paletler yalnızca bu prototipe ait deneme renkleridir.',
+    pose: 'Poz',
+    poses: { standing: 'Ayakta', halfway: 'Ara poz', down: 'Tam roll-down' },
+    play: 'Roll-down sırasını oynat',
+    stop: 'Durdur',
+    view: 'Görüş açısı',
+    views: { 0: 'Ön', 45: 'Ön ¾', 90: 'Yan', 135: 'Arka ¾', 180: 'Arka' },
+    yaw: 'Açı',
+    lines: 'Oturunca çizgileri göster',
+    dots: 'Noktalar',
+    rMin: 'En küçük yarıçap',
+    rMax: 'En büyük yarıçap',
+    density: 'Yoğunluk',
+    densities: { airy: 'Seyrek', balanced: 'Dengeli', dense: 'Yoğun' },
+    palette: 'Palet',
+    palettes: { 'clay-sage': 'Kil ve adaçayı', sand: 'Kum', sage: 'Adaçayı' },
+    spine: 'Omurga noktalarını vurgula',
+    depth: 'Derinlik (uzak noktalar küçük ve soluk)',
+    fluid: 'Akışkanlık (dış noktalar hafifçe geriden gelir)',
+    states: {
+      moving: 'Hareket: noktalar serbest, çizgi yok',
+      clearing: 'Çizgiler bir sonraki hareketten önce kayboluyor',
+      settled: 'Oturdu',
+      connected: 'Oturdu: çizgiler beliriyor',
+    },
+    stats: 'Nokta {dots} · çizgi {lines} · kare {ms} ms',
+    contrast: 'Zemin karşıtlığı: tonlar {tones} · omurga {accent}',
+    reduced: 'Azaltılmış hareket: geçişler anlık, çizgiler belirmeden görünür.',
+    figure: 'Nokta figür',
+    anglesTitle: 'Aynı poz, beş açıdan',
+    sizesTitle: 'Küçük boyutlar',
+    sizes: { card: 'Kart (240 px)', phone: 'Küçük (140 px)' },
+    sizesNote: 'Büyük sahneyle aynı açı, poz ve ayarlar. Küçük boyutlarda noktalar göreli olarak büyür (yarıçap ∝ ölçek^0,65) ve en az 0,6 px kalır.',
+    look: 'Bakılacaklar',
+    lookItems: [
+      'Hareket halinde ve dururken siluet her açıdan insan olarak okunuyor mu? Baş, gövde, leğen, kollar, eller, bacaklar ve ayaklar ayırt ediliyor mu?',
+      'Roll-down sırasında omurga bölge bölge (önce baş ve boyun, en son leğen; yukarı çıkarken tersi) eğiliyor mu?',
+      'Çizgiler yalnızca oturmuş pozda mı görünüyor; figürü güçlendiriyor mu, yoksa ağ görüntüsüne mi dönüşüyor?',
+      'Paletler ve yarıçaplar: kart ve küçük boyutta noktalar zeminden ayrılıyor mu?',
+    ],
+    noscript: 'Bu prototip JavaScript gerektirir.',
+  },
+  en: {
+    title: 'Dot figure: multi-angle prototype',
+    intro:
+      'An abstract figure made only of small, independent circles. The dots are placed once, from a fixed seed, in a 3D body volume and bound to the bones of a skeleton; for every viewing angle they are projected onto the screen and drawn as flat circles. While the figure moves the dots are unconnected; lines appear only once a pose has settled, and disappear before the next movement.',
+    scope:
+      'This test page only. The homepage, the intro animation, the approved characters and the colour tokens are unchanged; the palettes are trial colours for this prototype only.',
+    pose: 'Pose',
+    poses: { standing: 'Standing', halfway: 'Halfway', down: 'Rolled down' },
+    play: 'Play the roll-down',
+    stop: 'Stop',
+    view: 'Viewing angle',
+    views: { 0: 'Front', 45: 'Front ¾', 90: 'Side', 135: 'Rear ¾', 180: 'Rear' },
+    yaw: 'Angle',
+    lines: 'Show lines once settled',
+    dots: 'Dots',
+    rMin: 'Smallest radius',
+    rMax: 'Largest radius',
+    density: 'Density',
+    densities: { airy: 'Airy', balanced: 'Balanced', dense: 'Dense' },
+    palette: 'Palette',
+    palettes: { 'clay-sage': 'Clay and sage', sand: 'Sand', sage: 'Sage' },
+    spine: 'Emphasise the spine’s dots',
+    depth: 'Depth (far dots smaller and paler)',
+    fluid: 'Fluidity (outer dots trail slightly)',
+    states: {
+      moving: 'Moving: dots free, no lines',
+      clearing: 'Lines clearing before the next movement',
+      settled: 'Settled',
+      connected: 'Settled: lines appear',
+    },
+    stats: 'Dots {dots} · lines {lines} · frame {ms} ms',
+    contrast: 'Contrast on the ground: tones {tones} · spine {accent}',
+    reduced: 'Reduced motion: transitions are instant and lines show without fading in.',
+    figure: 'Dot figure',
+    anglesTitle: 'The same pose from five angles',
+    sizesTitle: 'Smaller sizes',
+    sizes: { card: 'Card (240 px)', phone: 'Small (140 px)' },
+    sizesNote: 'Same angle, pose and settings as the main stage. At smaller sizes the dots are relatively larger (radius ∝ scale^0.65) and never below 0.6 px.',
+    look: 'What to look at',
+    lookItems: [
+      'Does the silhouette read as a person from every angle, moving and still? Are the head, torso, pelvis, arms, hands, legs and feet distinct?',
+      'During the roll-down, does the spine bend region by region (head and neck first, the pelvis last; the reverse on the way up)?',
+      'Do the lines appear only in a settled pose, and do they strengthen the figure rather than turn it into a network?',
+      'Palettes and radii: do the dots stand apart from the ground at the card and small sizes?',
+    ],
+    noscript: 'This prototype needs JavaScript.',
+  },
+}[lang];
+
+const labels = { poses: t.poses, views: t.views, states: t.states, stats: t.stats, contrast: t.contrast, figure: t.figure, play: t.play, stop: t.stop };
+---
+
+<BaseLayout title={`${t.title} (dev)`} translations={translations} lockup>
+  <div class="df container" data-dev-only data-df-root data-labels={JSON.stringify(labels)}>
+    <h1 class="df__title">{t.title}</h1>
+    <p class="df__intro">{t.intro}</p>
+    <p class="df__note">{t.scope}</p>
+    <noscript><p class="df__note">{t.noscript}</p></noscript>
+
+    <div class="df__main">
+      <div class="df__hero">
+        <div class="df__stage">
+          <canvas data-df-canvas="hero" role="img" aria-label={t.figure}></canvas>
+        </div>
+        <p class="df__state ui" data-df-state aria-live="polite"></p>
+      </div>
+
+      <div class="df__panel ui">
+        <fieldset class="df__group">
+          <legend>{t.pose}</legend>
+          <div class="df__row">
+            {
+              Object.entries(t.poses).map(([id, label]) => (
+                <button type="button" class="df__button" data-df-pose={id} aria-pressed={id === 'standing' ? 'true' : 'false'}>
+                  {label}
+                </button>
+              ))
+            }
+          </div>
+          <button type="button" class="df__button df__button--play" data-df-play>{t.play}</button>
+        </fieldset>
+
+        <fieldset class="df__group">
+          <legend>{t.view}</legend>
+          <div class="df__row">
+            {
+              angles.map((a) => (
+                <button type="button" class="df__button" data-df-yaw={a} aria-pressed={a === 0 ? 'true' : 'false'}>
+                  {t.views[a]}
+                </button>
+              ))
+            }
+          </div>
+          <label class="df__field">
+            {t.yaw}
+            <input type="range" min="0" max="359" step="1" value="0" data-df-yaw-range />
+            <output data-df-yaw-out>0°</output>
+          </label>
+          <label class="df__check"><input type="checkbox" checked data-df-lines /> {t.lines}</label>
+        </fieldset>
+
+        <fieldset class="df__group">
+          <legend>{t.dots}</legend>
+          <label class="df__field">
+            {t.rMin}
+            <input type="range" min="0.4" max="3" step="0.1" value="1" data-df-rmin />
+            <output data-df-rmin-out>1.0 px</output>
+          </label>
+          <label class="df__field">
+            {t.rMax}
+            <input type="range" min="1" max="6" step="0.1" value="3" data-df-rmax />
+            <output data-df-rmax-out>3.0 px</output>
+          </label>
+          <div class="df__row" role="group" aria-label={t.density}>
+            <span class="df__label">{t.density}</span>
+            {
+              Object.entries(t.densities).map(([id, label]) => (
+                <button type="button" class="df__button df__button--small" data-df-density={id} aria-pressed={id === 'balanced' ? 'true' : 'false'}>
+                  {label}
+                </button>
+              ))
+            }
+          </div>
+          <div class="df__row" role="group" aria-label={t.palette}>
+            <span class="df__label">{t.palette}</span>
+            {
+              Object.entries(t.palettes).map(([id, label]) => (
+                <button type="button" class="df__button df__button--small" data-df-palette={id} aria-pressed={id === 'clay-sage' ? 'true' : 'false'}>
+                  <span class="df__swatches" data-df-swatches={id} aria-hidden="true" />
+                  {label}
+                </button>
+              ))
+            }
+          </div>
+          <label class="df__check"><input type="checkbox" checked data-df-spine /> {t.spine}</label>
+          <label class="df__check"><input type="checkbox" checked data-df-depth /> {t.depth}</label>
+          <label class="df__field">
+            {t.fluid}
+            <input type="range" min="0" max="1" step="0.05" value="0.5" data-df-fluid />
+            <output data-df-fluid-out>0.50</output>
+          </label>
+        </fieldset>
+
+        <p class="df__note" data-df-stats></p>
+        <p class="df__note" data-df-contrast></p>
+        <p class="df__note" hidden data-df-reduced>{t.reduced}</p>
+      </div>
+    </div>
+
+    <h2 class="df__h2 ui">{t.anglesTitle}</h2>
+    <div class="df__angles">
+      {
+        angles.map((a) => (
+          <figure class="df__thumb">
+            <canvas data-df-canvas="angle" data-yaw={a} role="img" aria-label={`${t.figure}: ${t.views[a]}`} />
+            <figcaption class="ui">{t.views[a]}</figcaption>
+          </figure>
+        ))
+      }
+    </div>
+
+    <h2 class="df__h2 ui">{t.sizesTitle}</h2>
+    <p class="df__note">{t.sizesNote}</p>
+    <div class="df__sizes">
+      <figure class="df__thumb df__thumb--card">
+        <canvas data-df-canvas="card" role="img" aria-label={t.figure}></canvas>
+        <figcaption class="ui">{t.sizes.card}</figcaption>
+      </figure>
+      <figure class="df__thumb df__thumb--phone">
+        <canvas data-df-canvas="phone" role="img" aria-label={t.figure}></canvas>
+        <figcaption class="ui">{t.sizes.phone}</figcaption>
+      </figure>
+    </div>
+
+    <h2 class="df__h2 ui">{t.look}</h2>
+    <ul class="df__intro df__note">
+      {t.lookItems.map((item) => <li>{item}</li>)}
+    </ul>
+  </div>
+</BaseLayout>
+
+<style>
+  .df {
+    display: grid;
+    gap: var(--space-3);
+    padding-block: var(--space-4) var(--space-6);
+  }
+
+  .df__title {
+    font-size: var(--text-h2);
+    font-weight: 300;
+  }
+
+  .df__intro {
+    max-width: 48rem;
+  }
+
+  .df__note {
+    margin: 0;
+    font-size: var(--text-small);
+    color: var(--color-muted);
+  }
+
+  .df__h2 {
+    margin: var(--space-4) 0 0;
+  }
+
+  .df__main {
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    gap: var(--space-4);
+    align-items: start;
+  }
+
+  @media (max-width: 52rem) {
+    .df__main {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  .df__hero {
+    display: grid;
+    gap: var(--space-2);
+    justify-items: center;
+  }
+
+  .df__stage {
+    width: min(100%, 30rem);
+    aspect-ratio: 3 / 4;
+    border: 1px solid var(--color-rule);
+    background: var(--color-bg);
+  }
+
+  .df__stage canvas,
+  .df__thumb canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  .df__state {
+    min-height: 1.4em;
+    margin: 0;
+    color: var(--color-muted);
+    font-size: var(--text-label);
+    text-align: center;
+  }
+
+  .df__panel {
+    display: grid;
+    gap: var(--space-3);
+  }
+
+  .df__group {
+    display: grid;
+    gap: var(--space-2);
+    margin: 0;
+    padding: var(--space-3);
+    border: 1px solid var(--color-rule);
+  }
+
+  .df__group legend {
+    padding-inline: var(--space-1);
+    color: var(--color-muted);
+  }
+
+  .df__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .df__label {
+    min-width: 5.5rem;
+  }
+
+  .df__field {
+    display: grid;
+    grid-template-columns: minmax(7rem, auto) minmax(0, 1fr) 3.5rem;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .df__field output {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .df__check {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .df__button {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: 2.25rem;
+    padding-inline: var(--space-3);
+    border: 1px solid var(--color-rule);
+    border-radius: 999px;
+    background: var(--color-bg);
+    color: var(--color-text);
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .df__button[aria-pressed='true'] {
+    border-color: var(--color-muted);
+    background: var(--color-surface);
+  }
+
+  .df__button--small {
+    min-height: 2rem;
+    padding-inline: var(--space-2);
+  }
+
+  .df__button--play {
+    justify-self: start;
+  }
+
+  .df__swatches {
+    display: inline-flex;
+    gap: 2px;
+  }
+
+  .df__swatches :global(i) {
+    display: block;
+    width: 0.6rem;
+    height: 0.6rem;
+    border-radius: 50%;
+  }
+
+  .df__angles {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: var(--space-2);
+  }
+
+  @media (max-width: 40rem) {
+    .df__angles {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  .df__thumb {
+    display: grid;
+    gap: var(--space-1);
+    justify-items: center;
+  }
+
+  .df__thumb canvas {
+    max-width: 12rem;
+    aspect-ratio: 3 / 4;
+    border: 1px solid var(--color-rule);
+    background: var(--color-bg);
+  }
+
+  .df__thumb figcaption {
+    color: var(--color-muted);
+    font-size: var(--text-label);
+  }
+
+  .df__sizes {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: var(--space-4);
+  }
+
+  .df__thumb--card canvas {
+    width: 180px;
+    height: 240px;
+  }
+
+  .df__thumb--phone canvas {
+    width: 105px;
+    height: 140px;
+  }
+</style>
+
+<script>
+  import { cascade, distance, LAGS, newMatrices, pose, POSES, resolve, sampleFigure, skin } from '../../components/dot-figure/model';
+  import type { DensityId, Dots, Matrices, PoseId, Resolved } from '../../components/dot-figure/model';
+  import { PALETTES } from '../../components/dot-figure/palettes';
+  import { colours, contrast, Stage, type Colours, type Look } from '../../components/dot-figure/render';
+
+  const root = document.querySelector<HTMLElement>('[data-df-root]')!;
+  const q = <T extends Element>(selector: string) => root.querySelector<T>(selector)!;
+  const qa = <T extends Element>(selector: string) => [...root.querySelectorAll<T>(selector)];
+  const labels = JSON.parse(root.dataset.labels!) as {
+    poses: Record<PoseId, string>;
+    views: Record<string, string>;
+    states: Record<'moving' | 'clearing' | 'settled' | 'connected', string>;
+    stats: string;
+    contrast: string;
+    figure: string;
+    play: string;
+    stop: string;
+  };
+
+  const reduce =
+    matchMedia('(prefers-reduced-motion: reduce)').matches || new URLSearchParams(location.search).get('motion') === 'reduce';
+  q<HTMLElement>('[data-df-reduced]').hidden = !reduce;
+
+  // ---------- Timing (ms) ----------
+  /** A pose counts as settled this long after the last movement ends; then the lines fade in. */
+  const SETTLE = 450;
+  const LINES_IN = 900;
+  const LINES_OUT = 320;
+  /** Follow-through: each lag level trails by this much at full fluidity. */
+  const LAG_STEP = 90;
+  /** A full roll-down (standing to rolled down) takes about this long; shorter changes take less. */
+  const FULL = distance(resolve(POSES.standing), resolve(POSES.down));
+  const durationOf = (from: Resolved, to: Resolved) => 1400 + 3800 * Math.min(1, distance(from, to) / FULL);
+  /** In the sequence, how long each settled pose is held (after its lines are in). */
+  const HOLD = 1400;
+
+  // ---------- Figure ----------
+  const figures = new Map<DensityId, Dots>();
+  const figureOf = (id: DensityId) => {
+    if (!figures.has(id)) figures.set(id, sampleFigure(id));
+    return figures.get(id)!;
+  };
+  let dots = figureOf('balanced');
+  let pos = new Float64Array(dots.count * 3);
+  const matrices: Matrices[] = Array.from({ length: LAGS }, () => newMatrices());
+  const scratch = new Float64Array(resolve({}).length);
+
+  // ---------- State ----------
+  let poseId: PoseId = 'standing';
+  let current = resolve(POSES.standing);
+  let transition: { from: Resolved; to: Resolved; start: number; duration: number } | null = null;
+  let pendingPose: PoseId | null = null;
+  let yaw = 0;
+  let yawTween: { from: number; to: number; start: number; duration: number } | null = null;
+  let pendingYaw: number | null = null;
+  let lineAlpha = 0;
+  let settledAt = performance.now();
+  let sequence: PoseId[] | null = null;
+  let fluid = 0.5;
+  let linesOn = true;
+  let poseDirty = true;
+  const look: Look = { rMin: 1, rMax: 3, spine: true, depth: true, lineAlpha: 0 };
+  const ground = getComputedStyle(document.documentElement).getPropertyValue('--color-bg').trim();
+  let palette = PALETTES[0];
+  let fill: Colours = colours(palette, ground);
+
+  // ---------- Stages ----------
+  interface Entry {
+    stage: Stage;
+    yaw: number | null; // null: follows the main view
+  }
+  const entries: Entry[] = qa<HTMLCanvasElement>('[data-df-canvas]').map((canvas) => ({
+    stage: new Stage(canvas),
+    yaw: canvas.dataset.yaw ? Number(canvas.dataset.yaw) : null,
+  }));
+  const hero = entries[0];
+  const visibility = new IntersectionObserver((records) => {
+    for (const record of records) {
+      const entry = entries.find((e) => e.stage.canvas === record.target);
+      if (entry) entry.stage.visible = record.isIntersecting;
+    }
+    redraw = true;
+    kick();
+  });
+  const sizes = new ResizeObserver(() => {
+    for (const e of entries) e.stage.resize();
+    redraw = true;
+    kick();
+  });
+  for (const e of entries) {
+    visibility.observe(e.stage.canvas);
+    sizes.observe(e.stage.canvas);
+  }
+
+  // ---------- Requests ----------
+  /** Every movement is requested, not started: the lines clear first. */
+  function requestPose(id: PoseId) {
+    pendingPose = id;
+    syncPoseButtons();
+    kick();
+  }
+  function requestYaw(value: number) {
+    pendingYaw = ((value % 360) + 360) % 360;
+    kick();
+  }
+
+  function startPose(id: PoseId, now: number) {
+    const to = resolve(POSES[id]);
+    poseId = id;
+    if (reduce) {
+      current = to;
+      poseDirty = true;
+      settledAt = now;
+      return;
+    }
+    transition = { from: current, to, start: now, duration: durationOf(current, to) };
+  }
+  function startYaw(value: number, now: number) {
+    if (reduce) {
+      yaw = value;
+      redraw = true;
+      settledAt = now;
+      return;
+    }
+    let delta = value - yaw;
+    if (delta > 180) delta -= 360;
+    if (delta < -180) delta += 360;
+    yawTween = { from: yaw, to: yaw + delta, start: now, duration: 420 + 5 * Math.abs(delta) };
+  }
+
+  // ---------- Frame loop ----------
+  let running = false;
+  let redraw = true;
+  let last = performance.now();
+  let frameMs = 0;
+  let stateShown = '';
+
+  function kick() {
+    if (running) return;
+    running = true;
+    last = performance.now();
+    requestAnimationFrame(frame);
+  }
+
+  const ease = (u: number) => (u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u));
+
+  function frame(now: number) {
+    const dt = Math.min(50, now - last);
+    last = now;
+    const t0 = performance.now();
+
+    // A movement can start only once the lines have cleared.
+    const wants = pendingPose !== null || pendingYaw !== null;
+    if (wants && lineAlpha > 0) {
+      lineAlpha = reduce ? 0 : Math.max(0, lineAlpha - dt / LINES_OUT);
+      redraw = true;
+    }
+    if (wants && lineAlpha === 0) {
+      // A pose change waits for the one under way to finish (lagging dots never jump).
+      if (pendingPose !== null && !transition) {
+        startPose(pendingPose, now);
+        pendingPose = null;
+      }
+      if (pendingYaw !== null) {
+        startYaw(pendingYaw, now);
+        pendingYaw = null;
+      }
+    }
+
+    // Pose: one skeleton per follow-through level, each a little behind the last.
+    if (transition) {
+      const lag = LAG_STEP * fluid;
+      for (let l = 0; l < LAGS; l++) {
+        const u = (now - l * lag - transition.start) / transition.duration;
+        pose(cascade(transition.from, transition.to, u, scratch), matrices[l]);
+      }
+      skin(dots, matrices, pos);
+      redraw = true;
+      if (now - (LAGS - 1) * lag - transition.start >= transition.duration) {
+        current = transition.to;
+        transition = null;
+        poseDirty = true;
+        settledAt = now;
+      }
+    }
+    if (poseDirty) {
+      pose(current, matrices[0]);
+      skin(dots, [matrices[0]], pos);
+      poseDirty = false;
+      redraw = true;
+    }
+
+    // View.
+    if (yawTween) {
+      const u = (now - yawTween.start) / yawTween.duration;
+      yaw = yawTween.from + (yawTween.to - yawTween.from) * ease(u);
+      if (u >= 1) {
+        yaw = ((yawTween.to % 360) + 360) % 360;
+        yawTween = null;
+        settledAt = now;
+      }
+      redraw = true;
+    }
+
+    // Lines: only in a settled pose, after a short pause.
+    const moving = transition !== null || yawTween !== null;
+    const settled = !moving && pendingPose === null && pendingYaw === null;
+    if (settled) {
+      const target = linesOn ? 1 : 0;
+      if (lineAlpha !== target && (target === 0 || now - settledAt >= (reduce ? 0 : SETTLE))) {
+        const step = reduce ? 1 : dt / (target ? LINES_IN : LINES_OUT);
+        lineAlpha = target ? Math.min(1, lineAlpha + step) : Math.max(0, lineAlpha - step);
+        redraw = true;
+      }
+    }
+
+    // The sequence: the next pose once this one has settled and been held.
+    if (sequence && settled && (!linesOn || lineAlpha === 1) && now - settledAt >= (linesOn ? SETTLE + LINES_IN : 0) + HOLD) {
+      const next = sequence.shift();
+      if (next) requestPose(next);
+      else stopSequence();
+    }
+
+    if (redraw) {
+      look.lineAlpha = lineAlpha;
+      for (const e of entries) if (e.stage.visible) e.stage.draw(dots, pos, e.yaw ?? yaw, look, fill);
+      redraw = false;
+      frameMs = frameMs * 0.9 + (performance.now() - t0) * 0.1;
+    }
+    showState(moving ? 'moving' : !settled ? 'clearing' : linesOn ? 'connected' : 'settled');
+
+    const waiting = settled && lineAlpha !== (linesOn ? 1 : 0);
+    if (moving || !settled || waiting || sequence) requestAnimationFrame(frame);
+    else running = false;
+  }
+
+  // ---------- Readouts ----------
+  const stateEl = q<HTMLElement>('[data-df-state]');
+  function showState(state: keyof typeof labels.states) {
+    if (state === stateShown) return;
+    stateShown = state;
+    stateEl.textContent = labels.states[state];
+    const view = labels.views[String(Math.round(yaw))] ?? `${Math.round(yaw)}°`;
+    hero.stage.canvas.ariaLabel = `${labels.figure}: ${labels.poses[poseId]}, ${view}`;
+  }
+  const statsEl = q<HTMLElement>('[data-df-stats]');
+  const showStats = () => {
+    statsEl.textContent = labels.stats
+      .replace('{dots}', String(dots.count))
+      .replace('{lines}', String(dots.lines.length / 2))
+      .replace('{ms}', frameMs.toFixed(1));
+  };
+  setInterval(showStats, 500);
+  function showContrast() {
+    const ratios = palette.stops.map((c) => contrast(c, ground));
+    const fmt = (n: number) => `${n.toFixed(1)}:1`;
+    q<HTMLElement>('[data-df-contrast]').textContent = labels.contrast
+      .replace('{tones}', `${fmt(Math.min(...ratios))}–${fmt(Math.max(...ratios))}`)
+      .replace('{accent}', fmt(contrast(palette.accent, ground)));
+  }
+
+  // ---------- Controls ----------
+  const press = (selector: string, active: Element) => {
+    for (const b of qa(selector)) b.setAttribute('aria-pressed', String(b === active));
+  };
+
+  const playButton = q<HTMLButtonElement>('[data-df-play]');
+  function stopSequence() {
+    sequence = null;
+    playButton.textContent = labels.play;
+  }
+  playButton.addEventListener('click', () => {
+    if (sequence) return stopSequence();
+    const steps: PoseId[] = ['halfway', 'down', 'standing'];
+    sequence = poseId === 'standing' && !transition && pendingPose === null ? steps : ['standing', ...steps];
+    playButton.textContent = labels.stop;
+    kick();
+  });
+  // The pose buttons follow the sequence's poses too.
+  function syncPoseButtons() {
+    const target = pendingPose ?? poseId;
+    for (const b of qa('[data-df-pose]')) b.setAttribute('aria-pressed', String((b as HTMLElement).dataset.dfPose === target));
+  }
+  for (const button of qa<HTMLButtonElement>('[data-df-pose]')) {
+    button.addEventListener('click', () => {
+      stopSequence();
+      requestPose(button.dataset.dfPose as PoseId);
+    });
+  }
+
+  const yawRange = q<HTMLInputElement>('[data-df-yaw-range]');
+  const yawOut = q<HTMLOutputElement>('[data-df-yaw-out]');
+  const yawButtons = qa<HTMLButtonElement>('[data-df-yaw]');
+  const syncYaw = (value: number) => {
+    yawRange.value = String(value);
+    yawOut.value = `${value}°`;
+    for (const b of yawButtons) b.setAttribute('aria-pressed', String(Number(b.dataset.dfYaw) === value));
+  };
+  for (const button of yawButtons) {
+    button.addEventListener('click', () => {
+      const value = Number(button.dataset.dfYaw);
+      syncYaw(value);
+      requestYaw(value);
+    });
+  }
+  yawRange.addEventListener('input', () => {
+    const value = Number(yawRange.value);
+    syncYaw(value);
+    requestYaw(value);
+  });
+
+  q<HTMLInputElement>('[data-df-lines]').addEventListener('change', (event) => {
+    linesOn = (event.target as HTMLInputElement).checked;
+    kick();
+  });
+
+  const rMin = q<HTMLInputElement>('[data-df-rmin]');
+  const rMax = q<HTMLInputElement>('[data-df-rmax]');
+  const radii = (changed: HTMLInputElement) => {
+    // Keep min ≤ max by moving the other slider.
+    if (Number(rMin.value) > Number(rMax.value)) (changed === rMin ? rMax : rMin).value = changed.value;
+    look.rMin = Number(rMin.value);
+    look.rMax = Number(rMax.value);
+    q<HTMLOutputElement>('[data-df-rmin-out]').value = `${look.rMin.toFixed(1)} px`;
+    q<HTMLOutputElement>('[data-df-rmax-out]').value = `${look.rMax.toFixed(1)} px`;
+    redraw = true;
+    kick();
+  };
+  rMin.addEventListener('input', () => radii(rMin));
+  rMax.addEventListener('input', () => radii(rMax));
+
+  for (const button of qa<HTMLButtonElement>('[data-df-density]')) {
+    button.addEventListener('click', () => {
+      press('[data-df-density]', button);
+      dots = figureOf(button.dataset.dfDensity as DensityId);
+      pos = new Float64Array(dots.count * 3);
+      if (!transition) poseDirty = true;
+      redraw = true;
+      kick();
+    });
+  }
+
+  for (const span of qa<HTMLElement>('[data-df-swatches]')) {
+    const p = PALETTES.find((x) => x.id === span.dataset.dfSwatches)!;
+    for (const c of [...p.stops, p.accent]) {
+      const dot = document.createElement('i');
+      dot.style.background = c;
+      span.append(dot);
+    }
+  }
+  for (const button of qa<HTMLButtonElement>('[data-df-palette]')) {
+    button.addEventListener('click', () => {
+      press('[data-df-palette]', button);
+      palette = PALETTES.find((p) => p.id === button.dataset.dfPalette)!;
+      fill = colours(palette, ground);
+      showContrast();
+      redraw = true;
+      kick();
+    });
+  }
+
+  q<HTMLInputElement>('[data-df-spine]').addEventListener('change', (event) => {
+    look.spine = (event.target as HTMLInputElement).checked;
+    redraw = true;
+    kick();
+  });
+  q<HTMLInputElement>('[data-df-depth]').addEventListener('change', (event) => {
+    look.depth = (event.target as HTMLInputElement).checked;
+    redraw = true;
+    kick();
+  });
+  const fluidRange = q<HTMLInputElement>('[data-df-fluid]');
+  fluidRange.addEventListener('input', () => {
+    fluid = Number(fluidRange.value);
+    q<HTMLOutputElement>('[data-df-fluid-out]').value = fluid.toFixed(2);
+  });
+
+  // Console checks.
+  Object.assign(window, { __dots: { get dots() { return dots; }, get pos() { return pos; }, get state() { return { poseId, yaw, lineAlpha, transition, sequence }; } } });
+
+  for (const e of entries) e.stage.resize();
+  showContrast();
+  showStats();
+  kick();
+</script>

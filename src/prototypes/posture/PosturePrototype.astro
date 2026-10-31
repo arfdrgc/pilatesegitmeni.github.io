@@ -1,0 +1,646 @@
+---
+// Visual-direction prototype: character-led hero with a circular navigation
+// experiment, followed by readable content. Dev only: rendered by
+// src/pages/dev/[prototype].astro and src/pages/en/dev/[prototype].astro,
+// whose getStaticPaths() returns no paths in a production build.
+// No client-side JavaScript: the figure animation and nav poses are CSS.
+import '../../styles/fonts.css';
+import '../../styles/tokens.css';
+import '../../styles/global.css';
+import DevPlaceholder from '../../components/DevPlaceholder.astro';
+import InstagramLink from '../../components/InstagramLink.astro';
+import brand from '../../config/brand.json';
+import type { Lang } from '../../i18n/ui';
+import { otherLang, t } from '../../i18n/utils';
+import { copy, prototypePaths } from './copy';
+import Figure from './Figure.astro';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const c = copy[lang];
+const other = otherLang(lang);
+const [pilatesNav, postureNav, movementNav, communityNav] = c.nav;
+
+// Nav points on the ring, clockwise from top left (angles from 3 o'clock).
+const angles = [-140, -40, 40, 140];
+---
+
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>{c.metaTitle}</title>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">{t(lang).skipToContent}</a>
+
+    <header class="top container">
+      <a class="top__mark" href={prototypePaths[lang]}>{brand.name}</a>
+      <nav class="top__links ui" aria-label={t(lang).mainNav}>
+        <InstagramLink class="top__link" />
+        <a class="top__link" href={prototypePaths[other]} lang={other} hreflang={other}>{c.languageLink}</a>
+      </nav>
+    </header>
+
+    <main id="main" tabindex="-1">
+      <section class="hero container" aria-labelledby="motto">
+        <h1 class="motto" id="motto">
+          <span class="motto__a">{c.mottoA}</span>
+          <span class="motto__b">{c.mottoB}</span>
+        </h1>
+
+        <div class="stage">
+          <div class="stage__ring">
+            <Figure class="stage__figure" label={c.figureLabel} animated />
+          </div>
+          <nav class="orbit" aria-label={c.navLabel}>
+            <ul class="orbit__list" role="list">
+              {
+                c.nav.map((item, i) => (
+                  <li class="orbit__item" data-side={i === 0 || i === 3 ? 'start' : 'end'} style={`--a: ${angles[i]}deg`}>
+                    <a class="orbit__link" href={`#${item.id}`} data-pose={item.pose}>
+                      <span class="orbit__dot" aria-hidden="true" />
+                      <span class="orbit__text">
+                        <span class="orbit__label">{item.label}</span>
+                        <span class="orbit__hint">{item.hint}</span>
+                      </span>
+                    </a>
+                  </li>
+                ))
+              }
+            </ul>
+          </nav>
+        </div>
+
+        <p class="hero__intro">{c.intro}</p>
+      </section>
+
+      <section class="section container" id={pilatesNav.id} aria-labelledby="pilates-title">
+        <div class="section__head">
+          <h2 class="section__title" id="pilates-title">{c.pilates.title}</h2>
+        </div>
+        <div class="section__body prose">
+          {c.pilates.body.map((p) => <p>{p}</p>)}
+          <h3 class="principles__title">{c.pilates.principlesTitle}</h3>
+          <dl class="principles">
+            {
+              c.pilates.principles.map((item) => (
+                <div class="principles__item">
+                  <dt>{item.term}</dt>
+                  <dd>{item.text}</dd>
+                </div>
+              ))
+            }
+          </dl>
+        </div>
+      </section>
+
+      <section class="section section--posture container" id={postureNav.id} aria-labelledby="posture-title">
+        <div class="section__head">
+          <h2 class="section__title" id="posture-title">{c.posture.title}</h2>
+          <div class="prose">
+            {c.posture.body.map((p) => <p>{p}</p>)}
+          </div>
+          <DevPlaceholder as="p" class="todo" label={c.posture.articlesTodo} />
+        </div>
+        <figure class="diagram">
+          <Figure class="diagram__figure" label={c.posture.diagramLabel} points={c.posture.points} />
+          <figcaption class="diagram__caption">{c.posture.caption}</figcaption>
+        </figure>
+      </section>
+
+      <section class="section container" id={movementNav.id} aria-labelledby="movement-title">
+        <div class="section__head">
+          <h2 class="section__title" id="movement-title">{c.movement.title}</h2>
+          <p class="section__deck">{c.movement.deck}</p>
+        </div>
+        <div class="section__body">
+          <ol class="steps" role="list">
+            {c.movement.steps.map((step) => <li class="steps__item">{step}</li>)}
+          </ol>
+          <p class="note ui">{c.movement.note}</p>
+          <DevPlaceholder as="p" class="todo" label={c.movement.guidesTodo} />
+        </div>
+      </section>
+
+      <section class="community" id={communityNav.id} aria-labelledby="community-title">
+        <div class="community__inner container">
+          <h2 class="community__title" id="community-title">{c.community.title}</h2>
+          <p class="community__body">{c.community.body}</p>
+          <InstagramLink class="community__cta ui" label={c.community.cta} />
+          <p class="community__motto" aria-hidden="true">{c.mottoA} {c.mottoB}</p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="foot container ui">
+      <span>{brand.name}</span>
+      <span data-dev-only>{c.devNote}</span>
+    </footer>
+  </body>
+</html>
+
+<style>
+  :global(html) {
+    scroll-behavior: smooth;
+  }
+
+  /* Header: quiet wordmark and two links. */
+  .top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2) var(--space-4);
+    padding-block: var(--space-3);
+  }
+
+  .top__mark {
+    color: var(--color-text);
+    font-size: 1.5rem;
+    letter-spacing: -0.015em;
+    text-decoration: none;
+  }
+
+  .top__links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-4);
+  }
+
+  .top__links :global(.top__link) {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap-min);
+    color: var(--color-text);
+    text-decoration: none;
+  }
+
+  .top__links :global(a.top__link:hover) {
+    text-decoration-line: underline;
+  }
+
+  /* ---------- Hero (mobile first: stacked) ---------- */
+
+  .hero {
+    display: grid;
+    gap: var(--space-4);
+    padding-block: var(--space-4) var(--space-6);
+  }
+
+  .motto {
+    font-size: clamp(2.75rem, 1.9rem + 3.8vw, 4rem);
+    font-weight: 300;
+    line-height: 1.02;
+    letter-spacing: var(--tracking-display);
+    overflow-wrap: break-word;
+    hyphens: auto;
+  }
+
+  .motto__a,
+  .motto__b {
+    display: block;
+  }
+
+  .motto__b {
+    color: var(--color-sage);
+  }
+
+  .stage {
+    display: grid;
+    gap: var(--space-5);
+  }
+
+  .stage__ring {
+    position: relative;
+    width: min(100%, 22rem);
+    aspect-ratio: 1;
+    margin-inline: auto;
+    display: grid;
+    place-items: center;
+  }
+
+  /* The ring and the soft disc behind the figure. */
+  .stage__ring::before,
+  .stage__ring::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+  }
+
+  .stage__ring::before {
+    inset: 0;
+    border: 1px solid var(--color-rule);
+  }
+
+  .stage__ring::after {
+    inset: 16%;
+    background: var(--color-panel);
+    opacity: 0.6;
+  }
+
+  /* Absolutely placed so the figure's height can't stretch the square ring. */
+  .stage__ring :global(.stage__figure) {
+    position: absolute;
+    z-index: 1;
+    top: 6%;
+    left: 50%;
+    height: 86%;
+    width: auto;
+    translate: -50% 0;
+  }
+
+  /* On phones the ring nav becomes a plain list of sections. */
+  .orbit__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border-top: 1px solid var(--color-rule);
+  }
+
+  .orbit__item {
+    border-bottom: 1px solid var(--color-rule);
+  }
+
+  .orbit__link {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-height: 4.25rem;
+    padding-block: var(--space-3);
+    color: var(--color-text);
+    text-decoration: none;
+  }
+
+  .orbit__dot {
+    flex: none;
+    width: 0.625rem;
+    height: 0.625rem;
+    border-radius: 50%;
+    background: var(--color-text);
+    box-shadow: 0 0 0 4px var(--color-bg);
+    transition: background-color 0.2s ease;
+  }
+
+  .orbit__text {
+    display: grid;
+    gap: 0.125rem;
+  }
+
+  .orbit__label {
+    font-size: 1.5rem;
+    line-height: 1.1;
+  }
+
+  .orbit__hint {
+    color: var(--color-muted);
+    font-family: var(--font-sans);
+    font-size: var(--text-small);
+    font-weight: 500;
+  }
+
+  .orbit__link:hover .orbit__dot,
+  .orbit__link:focus-visible .orbit__dot {
+    background: var(--color-accent);
+  }
+
+  .orbit__link:hover .orbit__label {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.18em;
+  }
+
+  .hero__intro {
+    max-width: 34rem;
+    color: var(--color-muted);
+    font-size: var(--text-lead);
+  }
+
+  @media (min-width: 40rem) {
+    .orbit__list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      column-gap: var(--space-5);
+    }
+  }
+
+  /* ---------- Hero (desktop: motto split around the figure, nav on the ring) ---------- */
+
+  @media (min-width: 64rem) {
+    .hero {
+      --stage: clamp(25rem, 40vw, 36rem);
+      grid-template-columns: minmax(0, 1fr) var(--stage) minmax(0, 1fr);
+      column-gap: clamp(2rem, 3.5vw, 4rem);
+      row-gap: var(--space-5);
+      padding-block: var(--space-3) var(--space-6);
+    }
+
+    .motto {
+      grid-column: 1 / -1;
+      grid-row: 1;
+      display: grid;
+      grid-template-columns: subgrid;
+      align-items: center;
+      font-size: clamp(2.5rem, 0.5rem + 3.4vw, 4rem);
+    }
+
+    .motto__a {
+      grid-column: 1;
+      text-align: right;
+    }
+
+    .motto__b {
+      grid-column: 3;
+    }
+
+    .stage {
+      grid-column: 2;
+      grid-row: 1;
+      position: relative;
+      display: block;
+      aspect-ratio: 1;
+    }
+
+    .stage__ring {
+      width: 100%;
+    }
+
+    .orbit__list {
+      position: absolute;
+      inset: 0;
+      display: block;
+      border: 0;
+    }
+
+    .orbit__item {
+      position: absolute;
+      left: calc(50% + 50% * cos(var(--a)));
+      top: calc(50% + 50% * sin(var(--a)));
+      border: 0;
+      translate: -0.3125rem -50%;
+    }
+
+    .orbit__item[data-side='start'] {
+      translate: calc(-100% + 0.3125rem) -50%;
+    }
+
+    .orbit__item[data-side='start'] .orbit__link {
+      flex-direction: row-reverse;
+      text-align: right;
+    }
+
+    .orbit__link {
+      gap: var(--space-3);
+      min-height: var(--tap-min);
+      padding-block: var(--space-1);
+      white-space: nowrap;
+    }
+
+    .orbit__label {
+      font-size: 1.375rem;
+    }
+
+    .hero__intro {
+      grid-column: 2;
+      grid-row: 2;
+      justify-self: center;
+      text-align: center;
+      font-size: var(--text-body);
+    }
+  }
+
+  /* Hovering or focusing a nav point gives the figure a matching pose. */
+  @media (hover: hover) and (min-width: 64rem) {
+    .hero:has([data-pose='reach']:is(:hover, :focus-visible)) .stage {
+      --p-arm: -88deg;
+      --p-arm-back: -82deg;
+    }
+
+    .hero:has([data-pose='align']:is(:hover, :focus-visible)) .stage {
+      --plumb: 1;
+    }
+
+    .hero:has([data-pose='overhead']:is(:hover, :focus-visible)) .stage {
+      --p-arm: -168deg;
+      --p-arm-back: -160deg;
+      --p-elbow: -6deg;
+    }
+
+    .hero:has([data-pose='wave']:is(:hover, :focus-visible)) .stage {
+      --p-arm: -142deg;
+      --p-elbow: -42deg;
+    }
+  }
+
+  /* ---------- Content sections ---------- */
+
+  .section {
+    display: grid;
+    gap: var(--space-4) var(--space-6);
+    padding-block: var(--section-pad);
+    border-top: 1px solid var(--color-rule);
+    scroll-margin-top: var(--space-3);
+  }
+
+  .section__head {
+    display: grid;
+    align-content: start;
+    gap: var(--space-4);
+  }
+
+  .section__title {
+    font-size: var(--text-h2);
+    font-weight: 300;
+    letter-spacing: var(--tracking-heading);
+  }
+
+  .section__deck {
+    max-width: 30rem;
+    color: var(--color-muted);
+    font-size: var(--text-lead);
+  }
+
+  .prose {
+    display: grid;
+    gap: var(--space-3);
+    max-width: var(--measure);
+  }
+
+  @media (min-width: 64rem) {
+    .section {
+      grid-template-columns: 5fr 7fr;
+    }
+  }
+
+  /* Principles: two columns of hairline-topped terms. */
+  .principles__title {
+    margin-top: var(--space-4);
+    color: var(--color-muted);
+    font-family: var(--font-sans);
+    font-size: var(--text-ui);
+    font-weight: 500;
+  }
+
+  .principles {
+    display: grid;
+    gap: 0 var(--space-5);
+    margin: 0;
+  }
+
+  .principles__item {
+    padding-block: var(--space-3);
+    border-top: 1px solid var(--color-rule);
+  }
+
+  .principles dt {
+    font-size: var(--text-card);
+    line-height: var(--leading-heading);
+  }
+
+  .principles dd {
+    margin: var(--space-1) 0 0;
+    color: var(--color-muted);
+  }
+
+  @media (min-width: 40rem) {
+    .principles {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  /* Posture: text beside the labelled alignment diagram. */
+  .diagram {
+    display: grid;
+    gap: var(--space-3);
+    justify-items: center;
+    padding: var(--space-5) var(--space-4) var(--space-4);
+    background: var(--color-surface);
+  }
+
+  .diagram :global(.diagram__figure) {
+    width: min(100%, 19rem);
+    height: auto;
+  }
+
+  .diagram__caption {
+    max-width: 30rem;
+    color: var(--color-muted);
+    font-family: var(--font-sans);
+    font-size: var(--text-small);
+    line-height: 1.55;
+  }
+
+  /* Movement: a real sequence, so numbered. */
+  .steps {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: step;
+    max-width: var(--measure);
+  }
+
+  .steps__item {
+    counter-increment: step;
+    display: grid;
+    grid-template-columns: 2.5rem 1fr;
+    gap: var(--space-3);
+    padding-block: var(--space-3);
+    border-top: 1px solid var(--color-rule);
+  }
+
+  .steps__item::before {
+    content: counter(step);
+    color: var(--color-sage);
+    font-size: var(--text-card);
+    line-height: 1.2;
+  }
+
+  .note {
+    max-width: var(--measure);
+    margin-top: var(--space-4);
+    color: var(--color-muted);
+    font-weight: 400;
+    line-height: 1.55;
+  }
+
+  .todo {
+    color: var(--color-muted);
+    font-family: var(--font-sans);
+    font-size: var(--text-small);
+  }
+
+  .section__body .todo {
+    margin-top: var(--space-3);
+  }
+
+  /* Community band. */
+  .community {
+    background: var(--color-band);
+    color: var(--color-band-text);
+    scroll-margin-top: var(--space-3);
+  }
+
+  .community__inner {
+    display: grid;
+    justify-items: start;
+    gap: var(--space-4);
+    padding-block: var(--section-pad);
+  }
+
+  .community__title {
+    font-size: var(--text-band);
+    font-weight: 300;
+    letter-spacing: var(--tracking-heading);
+  }
+
+  .community__body {
+    max-width: 30rem;
+    color: var(--color-band-muted);
+    font-size: var(--text-lead);
+  }
+
+  .community :global(.community__cta) {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap-min);
+    padding-inline: var(--space-4);
+    border: 1px solid var(--color-band-text);
+    border-radius: 999px;
+    color: var(--color-band-text);
+    text-decoration: none;
+  }
+
+  .community :global(a.community__cta:hover) {
+    background: var(--color-band-text);
+    color: var(--color-band);
+  }
+
+  .community :global(.community__cta:focus-visible) {
+    outline-color: var(--color-band-text);
+  }
+
+  .community__motto {
+    margin-top: var(--space-5);
+    color: var(--color-band-muted);
+    font-size: var(--text-display);
+    font-weight: 300;
+    line-height: var(--leading-display);
+    letter-spacing: var(--tracking-display);
+    overflow-wrap: break-word;
+    hyphens: auto;
+  }
+
+  .foot {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--space-2) var(--space-4);
+    padding-block: var(--space-5);
+    color: var(--color-muted);
+  }
+</style>

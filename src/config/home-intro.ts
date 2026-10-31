@@ -15,7 +15,12 @@ const tr = {
   slogan: 'Daha iyi duruş, daha sağlıklı yaşam.',
   /** The motto's quotation marks (the dot intro), drawn around the slogan and hidden from screen readers. */
   quotes: ['“', '”'],
+  /** The stop control, shown only while the intro plays (owner, 2026-10-31): its accessible name and tooltip. */
   stop: 'Animasyonu durdur',
+  /** The toggle for the automatic pose cycling (owner, 2026-10-31): its accessible name, and its tooltip when on and off. It stops the cycling, not the dots. */
+  loop: 'Otomatik poz döngüsü',
+  loopOn: 'Otomatik poz döngüsü açık. Kapatmak için tıkla.',
+  loopOff: 'Otomatik poz döngüsü kapalı. Açmak için tıkla.',
   /** Under the slogan once the menu is shown (owner, 2026-10-26: in place of the coming-soon line). */
   replay: 'Yeniden izle',
   replayLabel: 'Giriş animasyonunu yeniden oynat',
@@ -27,6 +32,9 @@ const en: typeof tr = {
   slogan: 'Better Posture, Better Health.',
   quotes: ['“', '”'],
   stop: 'Stop animation',
+  loop: 'Automatic pose cycling',
+  loopOn: 'Automatic pose cycling is on. Click to turn it off.',
+  loopOff: 'Automatic pose cycling is off. Click to turn it on.',
   replay: 'Replay',
   replayLabel: 'Replay the intro animation',
 };

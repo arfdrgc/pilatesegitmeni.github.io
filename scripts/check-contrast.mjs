@@ -20,6 +20,8 @@ const APPROVED = {
   muted: '#62594f',
   accent: '#9f4a2b',
   sage: '#4d5b4a',
+  brand: '#1d5b43',
+  'on-brand': '#ffffff',
   focus: '#9f4a2b',
   rule: '#ddd3c5',
   band: '#4d5b4a',
@@ -42,6 +44,8 @@ const PAIRS = [
   ['accent', 'surface', 4.5, 'Links in the footer'],
   ['accent', 'panel', 4.5, 'Labels in the featured article panel'],
   ['sage', 'bg', 4.5, 'Label on the coming-soon page'],
+  ['brand', 'bg', 3, 'Loop toggle button on the homepage, on (non-text)'],
+  ['on-brand', 'brand', 3, 'Loop toggle icon on its green button (non-text)'],
   // Tile numerals are decorative large text (aria-hidden); 3:1 keeps them legible.
   // The linen tile's muted numeral is covered by "muted on surface" above.
   ['accent', 'tile', 3, 'Numeral on a clay card tile'],
