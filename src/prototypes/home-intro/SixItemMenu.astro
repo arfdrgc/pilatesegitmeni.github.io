@@ -14,26 +14,18 @@
 // - The scene (../../components/home-intro/dotScene.ts, unchanged) fades the
 //   ring's items in document order, 150 ms apart, once she stands in the
 //   front view; the items are listed in the config's reveal order for that.
-// - The section pages don't exist yet, so on the dev preview their links
-//   lead to the dev server's 404 page. On the homepage (`homepage`) those
-//   items show their icon and label but are not links until their pages
-//   exist in both languages (owner, 2026-10-30): an <a> without href, which
-//   the scene fades as it does a link. İlham, Instagram, stays a link.
+// - Every item links to its section's page in the current language.
 import { PALETTES } from '../../components/dot-figure/palettes';
 import { ringPoint, STAGE } from '../../components/home-intro/geometry';
-import brand from '../../config/brand.json';
 import { homeMenu, revealOrder, type MenuIcon } from '../../config/home-menu';
 import { ritual } from '../../config/ritual';
 import type { Lang } from '../../i18n/ui';
 
 interface Props {
   lang: Lang;
-  /** On the homepage: only items whose destination exists are links (see above). */
-  homepage?: boolean;
 }
 
-const { lang, homepage = false } = Astro.props;
-const handle = brand.instagramHandle;
+const { lang } = Astro.props;
 /**
  * The icons at rest: the figure's own sage, the first tone of its approved
  * Clay and Sage palette (her feet and legs), soft against the page ground
@@ -63,15 +55,11 @@ const items = revealOrder.map((id) => {
   const item = homeMenu.find((entry) => entry.id === id)!;
   const { hour } = item;
   const { x, y } = ringPoint(hour);
-  const label = item.label[lang];
-  const instagram = item.to === 'instagram';
   return {
     hour,
     icon: icons[item.icon],
-    label,
-    href: instagram ? `https://www.instagram.com/${handle}/` : homepage ? undefined : (item.to as Record<Lang, string>)[lang],
-    /** The visible label first, then what the link opens (WCAG 2.5.3). */
-    name: instagram ? `${label}, Instagram: @${handle}` : undefined,
+    label: item.label[lang],
+    href: item.to[lang],
     side: hour > 6 ? 'start' : 'end',
     /** Half past 10 and half past 1: the ring curves in above them. */
     high: hour === 10.5 || hour === 1.5,
@@ -93,7 +81,7 @@ const items = revealOrder.map((id) => {
           data-intro-item
           data-hour={item.hour}
         >
-          <a class="ring-menu__link" href={item.href} aria-label={item.name}>
+          <a class="ring-menu__link" href={item.href}>
             <span class="ring-menu__mark" aria-hidden="true">
               <svg class="ring-menu__icon" viewBox="0 0 24 24" focusable="false" set:html={item.icon} />
             </span>

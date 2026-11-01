@@ -2,10 +2,9 @@
 // read as a clock face, labels in both languages, an icon each, and their
 // destinations. Shown by src/prototypes/home-intro/SixItemMenu.astro on the
 // dev preview (/dev/home-menu/, /en/dev/home-menu/) and on the homepage
-// (owner, 2026-10-30), where an item is a link only once its section's pages
-// exist in both languages (scripts/check-dist.mjs fails a build that links to
-// a missing page). The section paths are the approved future routes; none is
-// built yet.
+// (owner, 2026-10-30). Each section's pages (../components/SectionPage.astro)
+// take their names and language pairs from here too; scripts/check-dist.mjs
+// fails a build that links to a missing page.
 import type { Lang } from '../i18n/ui';
 
 export type MenuIcon = 'sun' | 'orbit' | 'seven' | 'instagram' | 'movement' | 'body';
@@ -16,8 +15,8 @@ export interface MenuItem {
   hour: 1.5 | 3 | 4.5 | 7.5 | 9 | 10.5;
   icon: MenuIcon;
   label: Record<Lang, string>;
-  /** A section's page in each language, or the brand's Instagram account (src/config/brand.json). */
-  to: Record<Lang, string> | 'instagram';
+  /** The section's page in each language. */
+  to: Record<Lang, string>;
 }
 
 // Clockwise from the upper right (owner, 2026-10-29, second round: half past
@@ -25,7 +24,7 @@ export interface MenuItem {
 export const homeMenu: MenuItem[] = [
   { id: 'body', hour: 1.5, icon: 'body', label: { tr: 'Bedenin Dili', en: 'The Language of the Body' }, to: { tr: '/bedenin-dili/', en: '/en/the-language-of-the-body/' } },
   { id: 'repertoire', hour: 3, icon: 'movement', label: { tr: 'Repertuar', en: 'Repertoire' }, to: { tr: '/repertuar/', en: '/en/repertoire/' } },
-  { id: 'inspiration', hour: 4.5, icon: 'instagram', label: { tr: 'İlham', en: 'Inspiration' }, to: 'instagram' },
+  { id: 'inspiration', hour: 4.5, icon: 'instagram', label: { tr: 'İlham', en: 'Inspiration' }, to: { tr: '/ilham/', en: '/en/inspiration/' } },
   { id: 'principles', hour: 7.5, icon: 'seven', label: { tr: '7 Prensip', en: 'The 7 Principles' }, to: { tr: '/7-prensip/', en: '/en/7-principles/' } },
   { id: 'contrology', hour: 9, icon: 'orbit', label: { tr: 'Contrology', en: 'Contrology' }, to: { tr: '/contrology/', en: '/en/contrology/' } },
   { id: 'legacy', hour: 10.5, icon: 'sun', label: { tr: 'Miras', en: 'Legacy' }, to: { tr: '/miras/', en: '/en/legacy/' } },
