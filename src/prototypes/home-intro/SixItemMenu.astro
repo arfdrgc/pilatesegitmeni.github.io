@@ -5,10 +5,12 @@
 // (../../components/ComingSoon.astro, owner, 2026-10-30). Items, labels,
 // icons and destinations come from src/config/home-menu.ts.
 // - Each icon sits on the ring at its hour (half past 1, 3, half past 4,
-//   half past 7, 9, half past 10), where the homepage's dot sits; the label
-//   reaches outwards from it, away from the ring: to the left on the clock's
-//   left half, to the right on its right half. Long labels wrap onto two
-//   lines on phones.
+//   half past 7, 9, half past 10), where the homepage's dot sits. Tablets,
+//   desktops and phones held sideways: the label reaches outwards from it, away
+//   from the ring: to the left on the clock's left half, to the right on its
+//   right half. Phones upright (owner, 2026-11-01): the label sits directly
+//   below its icon, centred on it, at every hour, and long labels wrap onto two
+//   lines.
 // - The scene (../../components/home-intro/dotScene.ts, unchanged) fades the
 //   ring's items in document order, 150 ms apart, once she stands in the
 //   front view; the items are listed in the config's reveal order for that.
@@ -95,7 +97,7 @@ const items = revealOrder.map((id) => {
             <span class="ring-menu__mark" aria-hidden="true">
               <svg class="ring-menu__icon" viewBox="0 0 24 24" focusable="false" set:html={item.icon} />
             </span>
-            <span class="ring-menu__label">{item.label}</span>
+            <span class="ring-menu__label"><span class="ring-menu__text">{item.label}</span></span>
           </a>
         </li>
       ))
@@ -105,17 +107,16 @@ const items = revealOrder.map((id) => {
 
 <style>
   /* Set on the intro, so its ring sizes below can use them:
-     - the column each side keeps beside the ring for a label at 3 or 9
-       o'clock, single words ("Contrology", 75px at 14px Inter 500): half of
-       --room-icon's disc, the gap and 4.75rem. The ring is what gives way,
-       never a label's place, so the labels stay inside the page's gutter.
-       --room-icon is the icon the ring was sized for in the review of
-       2026-10-29 (owner: keep the ring as it is), so drawing a smaller icon
-       never changes the ring;
+     - the column each side keeps beside the ring on tablets and desktops for
+       a label at 3 or 9 o'clock, single words ("Contrology", 75px at 14px
+       Inter 500): half of --room-icon's disc, the gap and 4.75rem. The ring is
+       what gives way, never a label's place, so the labels stay inside the
+       page's gutter. --room-icon is the icon the ring was sized for in the
+       review of 2026-10-29 (owner: keep the ring as it is), so drawing a
+       smaller icon never changes the ring;
      - the icon drawn (48px; on phones a share of the ring, below), and its
        disc of page ground 4px wider all round (it hides the ring under it).
-     These override HomeIntro.astro's ring sizes (desktop and tier B), on
-     this preview only. */
+     These override HomeIntro.astro's ring sizes, wherever this menu is shown. */
   :global(.intro.intro--side-labels:has(.ring-menu)) {
     --room-icon: 3rem;
     --menu-column: calc((var(--room-icon) + 0.5rem) / 2 + var(--space-2) + 4.75rem);
@@ -124,21 +125,29 @@ const items = revealOrder.map((id) => {
     --mark: calc(var(--icon) + 0.5rem);
   }
 
-  /* Phones upright. The ring's room: 26.04vw − 62.5px, 24 to 42px (the
-     largest icon that kept neighbours apart). The icon drawn: a fifth of the
-     stage, 24 to 36px (24px at 360 wide, 29 at 390, 33 at 414), so it stays
-     in proportion to her and the ring (owner, 2026-10-29: smaller on phones). */
+  /* Phones upright (owner, 2026-11-01): the ring, its poses and its menu are
+     one composition, scaled to fit the screen's width. --menu-margin is the
+     space between the circle and the screen's left and right edges and,
+     through the top padding, the header's rule: half the widest label at 3 or
+     9 o'clock (4.75rem, above) and 0.5rem, so that label ends 0.5rem from the
+     screen. The stage is wider than the circle by --ring-share. Everything on
+     the canvas and the SVG is drawn in stage units, so it scales with --ring.
+     The height term and 36rem only matter on small tablets upright: phones
+     are limited by their width. The icon drawn is a share of the stage too. */
   @media (max-width: 47.99rem) and (orientation: portrait) {
     :global(.intro.intro--side-labels:has(.ring-menu)) {
-      --room-icon: clamp(1.5rem, 26.04vw - 62.5px, 2.625rem);
-      --ring-phone: max(6rem, min(calc(100vw - 2 * var(--gutter) - 2 * var(--menu-column)), calc(100svh - 18.5rem)));
-      --icon: clamp(1.5rem, 0.2 * var(--ring), 2.25rem);
+      --menu-margin: calc(4.75rem / 2 + var(--space-2));
+      --ring-phone: max(6rem, min(calc((100vw - 2 * var(--menu-margin)) / var(--ring-share)), calc(100svh - 18.5rem), 36rem));
+      --icon: clamp(1.5rem, 0.11 * var(--ring), 3rem);
+      --text-gap: var(--space-2);
+
+      padding-block-start: calc(var(--menu-margin) - (1 - var(--ring-share)) / 2 * var(--ring));
     }
   }
 
-  /* Phones sideways (the side column): the ring's room for the narrower
-     stage beside the text column, 26.04vw − 123px, 24 to 42px; the icon as
-     upright. */
+  /* Phones sideways (the side column), which keep their labels beside the
+     icons: the ring's room for the narrower stage beside the text column,
+     26.04vw − 123px, 24 to 42px; the icon drawn a fifth of the stage, 24 to 36px. */
   @media (orientation: landscape) and (max-height: 32rem) and (max-width: 60rem) {
     :global(.intro.intro--side-labels:has(.ring-menu)) {
       --room-icon: clamp(1.5rem, 26.04vw - 123px, 2.625rem);
@@ -149,15 +158,22 @@ const items = revealOrder.map((id) => {
 
   /* The label's widest line before it wraps: at most what is left beside an
      item on a diagonal (0.3253 of the stage from the centre, then half a
-     disc and the gap) before the gutter; on phones at most 6rem, for two
-     lines ("The 7 Principles", "The Language of the Body"). */
+     disc and the gap) before the gutter; phones sideways at most 6rem, for two
+     lines ("The 7 Principles", "The Language of the Body"). Phones upright,
+     below the icon: 7rem, for at most two lines ("The Language" is 95px). */
   .ring-menu {
     --label-max: min(12rem, calc(50vw - var(--gutter) - 0.3253 * var(--ring) - var(--mark) / 2 - var(--space-2)));
   }
 
-  @media (max-width: 47.99rem) and (orientation: portrait), (orientation: landscape) and (max-height: 32rem) and (max-width: 60rem) {
+  @media (orientation: landscape) and (max-height: 32rem) and (max-width: 60rem) {
     .ring-menu {
       --label-max: min(6rem, calc(50vw - var(--gutter) - 0.3253 * var(--ring) - var(--mark) / 2 - var(--space-2)));
+    }
+  }
+
+  @media (max-width: 47.99rem) and (orientation: portrait) {
+    .ring-menu {
+      --label-max: 7rem;
     }
   }
 
@@ -168,7 +184,7 @@ const items = revealOrder.map((id) => {
   }
 
   /* The icon's centre on the ring at the item's hour; the label after it on
-     the right-hand half, before it on the left. */
+     the right-hand half, before it on the left. (Phones: below it, further down.) */
   .ring-menu__item {
     position: absolute;
     width: max-content;
@@ -276,14 +292,57 @@ const items = revealOrder.map((id) => {
     translate: 0 min(0px, calc(0.0979 * var(--ring) - 50% - 2px));
   }
 
-  /* On the narrowest screens (upright under 392px wide, a stage under about
-     145px) these labels start beyond the line's end (it reaches 1.1 radii
-     each side), so nothing needs clearing; lifted, a two-line label would
-     meet the item at 9 or 3 o'clock. They hang down from the icon's line
-     instead (its first line beside the icon). */
-  @media (max-width: 24.5rem) and (orientation: portrait), (orientation: landscape) and (max-height: 32rem) and (max-width: 39.5rem) {
+  /* On the narrowest screens sideways (a stage under about 145px) these labels
+     start beyond the line's end (it reaches 1.1 radii each side), so nothing
+     needs clearing; lifted, a two-line label would meet the item at 9 or 3
+     o'clock. They hang down from the icon's line instead (its first line
+     beside the icon). */
+  @media (orientation: landscape) and (max-height: 32rem) and (max-width: 39.5rem) {
     .ring-menu__item--low .ring-menu__label {
       translate: 0 calc(50% - 0.5lh);
+    }
+  }
+
+  /* Phones upright (owner, 2026-11-01): every label directly below its icon
+     and centred on it, whatever its hour; the icon's centre stays on its hour.
+     The disc's own 4px of ground is the gap between them. The ring and the line
+     pass under some labels (the icons sit on them), so the label's text carries
+     the page's ground, as the icon's disc does. The narrowest rings (below
+     about 375px wide) set it 1px smaller, to stay clear of the poses. The two
+     lowest labels wrap before they would reach the controls' tap targets, which
+     lie between them, a pixel away. */
+  @media (max-width: 47.99rem) and (orientation: portrait) {
+    .ring-menu__item,
+    .ring-menu__item--start {
+      translate: -50% calc(var(--mark) / -2);
+    }
+
+    .ring-menu__link,
+    .ring-menu__item--start .ring-menu__link {
+      flex-direction: column;
+      gap: 0;
+      min-width: var(--tap-min);
+      text-align: center;
+    }
+
+    .ring-menu__item--high .ring-menu__label,
+    .ring-menu__item--low .ring-menu__label {
+      translate: none;
+    }
+
+    .ring-menu__item--low .ring-menu__label {
+      max-width: min(var(--label-max), calc(2 * (0.3253 * var(--ring) - var(--tap-min) - 1px)));
+    }
+
+    .ring-menu__label {
+      font-size: clamp(var(--text-small), 0.0445 * var(--ring), var(--text-ui));
+    }
+
+    .ring-menu__text {
+      padding-inline: 0.125rem;
+      background: var(--color-bg);
+      -webkit-box-decoration-break: clone;
+      box-decoration-break: clone;
     }
   }
 
