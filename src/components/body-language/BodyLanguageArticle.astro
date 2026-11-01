@@ -1,0 +1,445 @@
+---
+// The content of the Bedenin Dili / The Language of the Body page, in the slot
+// of SectionPage. Copy, sources and the lead image: src/config/body-language.ts.
+import { Image } from 'astro:assets';
+import { bodyLanguage, bodyLanguageLeadImage as image, bodyLanguageSources } from '../../config/body-language';
+import type { Lang } from '../../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const copy = bodyLanguage[lang];
+// Each chapter's place on the page's grid, so the reading rhythm doesn't repeat.
+const layouts = ['beside', 'wide', 'beside', 'wide', 'moments'];
+---
+
+<div class="article">
+  <div class="opening">
+    <p class="opening__statement">{copy.statement}</p>
+    <div class="opening__media" aria-hidden={image ? undefined : 'true'}>
+      {
+        image && (
+          <Image
+            src={image.src}
+            alt={image.alt[lang]}
+            widths={[800, 1200, 1600]}
+            sizes="(min-width: 64rem) 34vw, (min-width: 48rem) 42vw, 100vw"
+            class="opening__image"
+          />
+        )
+      }
+    </div>
+    <div class="opening__intro">
+      {copy.intro.map((paragraph) => <p>{paragraph}</p>)}
+    </div>
+  </div>
+
+  {
+    copy.chapters.map((chapter, i) => (
+      <section class:list={['chapter', `chapter--${layouts[i]}`]} aria-labelledby={`chapter-${chapter.id}`}>
+        <header class="chapter__head">
+          <p class="chapter__kicker label">{chapter.kicker}</p>
+          <h2 class="chapter__title" id={`chapter-${chapter.id}`}>
+            {chapter.title}
+          </h2>
+        </header>
+        <p class="chapter__lead">{chapter.lead}</p>
+        {chapter.moments && (
+          <div class="moments">
+            {chapter.moments.map((moment) => (
+              <p class="moment">
+                <strong class="moment__label">{moment.label}</strong> {moment.text}
+              </p>
+            ))}
+          </div>
+        )}
+        <div class="voices">
+          {chapter.voices.map((voice) => (
+            <div class:list={['voice', `voice--${voice.kind}`]}>
+              <p class="voice__label">{voice.label}</p>
+              <div class="voice__text">
+                {voice.paragraphs.map((paragraph) => (
+                  <p>{paragraph}</p>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    ))
+  }
+
+  <section class="closing" aria-labelledby="closing-title">
+    <h2 class="closing__title" id="closing-title">{copy.closing.title}</h2>
+    <p class="closing__line">{copy.closing.line}</p>
+    <p class="closing__disclaimer">{copy.closing.disclaimer}</p>
+  </section>
+
+  <section class="sources" aria-labelledby="sources-title">
+    <h2 class="sources__title" id="sources-title">{copy.sourcesTitle}</h2>
+    <div class="sources__groups">
+      {
+        bodyLanguageSources.map((group) => (
+          <div class="sources__group">
+            <h3 class="sources__label label">{group.label[lang]}</h3>
+            <ul class="sources__list">
+              {group.references.map((reference) => (
+                <li lang={reference.lang === lang ? undefined : reference.lang}>{reference.before}<a href={reference.href}>{reference.title}</a>{reference.after}</li>
+              ))}
+            </ul>
+          </div>
+        ))
+      }
+    </div>
+  </section>
+</div>
+
+<style>
+  /* Phones: one column in the document's order. */
+  .article {
+    --text-width: 38rem;
+    overflow-wrap: break-word;
+  }
+
+  .opening {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-5);
+    padding-block: var(--space-5) var(--section-pad);
+  }
+
+  .opening__statement {
+    font-size: var(--text-cover);
+    font-weight: 350;
+    line-height: 1.08;
+    letter-spacing: -0.022em;
+    text-wrap: balance;
+  }
+
+  /* The frame sets the size, with or without an image in it. */
+  .opening__media {
+    position: relative;
+    aspect-ratio: 4 / 5;
+    overflow: hidden;
+    background: var(--color-surface);
+  }
+
+  .opening__media :global(.opening__image) {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .opening__intro {
+    display: grid;
+    gap: var(--space-3);
+    max-width: var(--text-width);
+    font-size: var(--text-lead);
+    line-height: 1.55;
+  }
+
+  .chapter {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-5);
+    padding-block: var(--section-pad);
+    border-top: 1px solid var(--color-rule);
+  }
+
+  .chapter__kicker {
+    margin-bottom: var(--space-3);
+    color: var(--color-accent);
+  }
+
+  .chapter__title {
+    font-size: var(--text-h2);
+    font-weight: 350;
+    letter-spacing: var(--tracking-heading);
+  }
+
+  .chapter__lead {
+    max-width: 34rem;
+    font-size: var(--text-card);
+    font-weight: 350;
+    line-height: 1.3;
+    letter-spacing: -0.008em;
+  }
+
+  /* The three voices: each one's name beside its text from tablets up. */
+  .voices {
+    display: grid;
+    gap: var(--space-5);
+  }
+
+  .voice {
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .voice__label {
+    font-style: italic;
+    font-weight: 500;
+    color: var(--color-muted);
+  }
+
+  .voice__text {
+    display: grid;
+    gap: var(--space-3);
+    max-width: var(--text-width);
+  }
+
+  .voice--pilates {
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--color-rule);
+  }
+
+  .voice--pilates .voice__label {
+    color: var(--color-sage);
+  }
+
+  /* The question is the chapter's pause. */
+  .voice--notice {
+    margin-top: var(--space-4);
+  }
+
+  .voice--notice .voice__label {
+    color: var(--color-accent);
+  }
+
+  .voice--notice .voice__text {
+    max-width: 30rem;
+    font-size: var(--text-card);
+    font-style: italic;
+    font-weight: 350;
+    line-height: 1.3;
+  }
+
+  .moments {
+    display: grid;
+    gap: var(--space-4);
+  }
+
+  .moment {
+    max-width: var(--text-width);
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--color-rule);
+  }
+
+  .moment__label {
+    display: block;
+    margin-bottom: var(--space-2);
+    font-style: italic;
+    font-weight: 500;
+    color: var(--color-muted);
+  }
+
+  .closing {
+    display: grid;
+    gap: var(--space-4);
+    padding-block: var(--section-pad);
+    border-top: 1px solid var(--color-rule);
+  }
+
+  .closing__title {
+    font-size: var(--text-card);
+    font-weight: 350;
+    letter-spacing: -0.008em;
+  }
+
+  .closing__line {
+    max-width: 44rem;
+    font-size: var(--text-cover);
+    font-weight: 350;
+    line-height: 1.08;
+    letter-spacing: -0.022em;
+    text-wrap: balance;
+  }
+
+  .closing__disclaimer {
+    max-width: 34rem;
+    margin-top: var(--space-3);
+    color: var(--color-muted);
+    font-family: var(--font-sans);
+    font-size: var(--text-ui);
+    line-height: 1.55;
+  }
+
+  /* Sources: quieter than the article, in interface type. */
+  .sources {
+    padding-block: var(--space-6) var(--space-5);
+    border-top: 1px solid var(--color-rule);
+    color: var(--color-muted);
+    font-family: var(--font-sans);
+    font-size: var(--text-ui);
+    line-height: 1.55;
+  }
+
+  .sources__title {
+    margin-bottom: var(--space-5);
+    color: var(--color-text);
+    font-family: var(--font-serif);
+    font-size: var(--text-card);
+    font-weight: 350;
+    letter-spacing: -0.008em;
+  }
+
+  .sources__groups {
+    display: grid;
+    gap: var(--space-5);
+  }
+
+  .sources__label {
+    margin-bottom: var(--space-3);
+    color: var(--color-muted);
+    line-height: 1.4;
+  }
+
+  .sources__list {
+    display: grid;
+    gap: var(--space-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  /* Tablets: the statement beside the frame, each voice's name in its own column. */
+  @media (min-width: 48rem) {
+    .opening {
+      grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+      grid-template-areas:
+        'statement media'
+        'intro media';
+      grid-template-rows: auto 1fr;
+      column-gap: var(--space-6);
+    }
+
+    .opening__statement {
+      grid-area: statement;
+    }
+
+    .opening__media {
+      grid-area: media;
+      align-self: start;
+    }
+
+    .opening__intro {
+      grid-area: intro;
+    }
+
+    .voice {
+      grid-template-columns: 7.5rem minmax(0, 1fr);
+      column-gap: var(--space-4);
+    }
+
+    .voice__label {
+      /* Lines the name up with the first line of its text. */
+      padding-top: 0.05em;
+    }
+
+    .voice--notice .voice__label {
+      padding-top: 0.35em;
+    }
+
+    .moments {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      column-gap: var(--space-4);
+    }
+
+    .sources__groups {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      column-gap: var(--space-6);
+    }
+  }
+
+  /* Desktop: twelve columns, and a different place for each kind of chapter. */
+  @media (min-width: 64rem) {
+    .opening {
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      grid-template-areas: none;
+      column-gap: var(--space-4);
+      row-gap: var(--space-6);
+    }
+
+    .opening__statement {
+      grid-area: auto;
+      grid-column: 1 / 8;
+      grid-row: 1;
+    }
+
+    .opening__media {
+      grid-area: auto;
+      grid-column: 9 / 13;
+      grid-row: 1 / 3;
+    }
+
+    .opening__intro {
+      grid-area: auto;
+      grid-column: 3 / 8;
+      grid-row: 2;
+    }
+
+    .chapter {
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      column-gap: var(--space-4);
+      row-gap: var(--space-5);
+    }
+
+    /* Heading in the left margin, text to its right. */
+    .chapter--beside .chapter__head,
+    .chapter--moments .chapter__head {
+      grid-column: 1 / 5;
+      grid-row: 1 / 3;
+    }
+
+    .chapter--beside .chapter__lead,
+    .chapter--moments .chapter__lead {
+      grid-column: 5 / 12;
+    }
+
+    .chapter--beside .voices {
+      grid-column: 5 / 13;
+    }
+
+    /* Heading and lead across the top, text below and to the left. */
+    .chapter--wide .chapter__head {
+      grid-column: 1 / 9;
+    }
+
+    .chapter--wide .chapter__lead {
+      grid-column: 1 / 8;
+    }
+
+    .chapter--wide .voices {
+      grid-column: 3 / 11;
+    }
+
+    /* Under the heading, the three moments across the whole page. */
+    .chapter--moments .chapter__head {
+      grid-row: 1;
+    }
+
+    .chapter--moments .moments {
+      grid-column: 1 / 13;
+    }
+
+    .chapter--moments .voices {
+      grid-column: 5 / 13;
+    }
+
+    .closing__line {
+      margin-left: calc((100% + var(--space-4)) / 6);
+    }
+
+    .closing__disclaimer {
+      margin-left: calc((100% + var(--space-4)) / 6);
+    }
+
+    .sources__groups {
+      column-gap: var(--space-7);
+    }
+  }
+</style>
