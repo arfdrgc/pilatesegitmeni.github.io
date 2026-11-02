@@ -1,0 +1,83 @@
+---
+// An Instagram link on the İlham / Inspiration page: the Instagram icon and the
+// Pilates Eğitmeni symbol side by side, separate, then the label. Both of the
+// page's links use this, so their icons stay identical. The whole row is the link.
+// The symbol is an unedited copy of
+// ../brand-assets/logo/original/symbol/symbol-compact.svg, loaded as a file like
+// LogoLockup.astro. The two marks must never overlap or be merged.
+import brand from '../../config/brand.json';
+import symbol from '../../assets/logo-a-open/symbol-compact.svg';
+
+interface Props {
+  label: string;
+  /** The link's accessible name, when the label alone doesn't say where it leads. Must contain the label. */
+  name?: string;
+}
+
+const { label, name } = Astro.props;
+const handle: string | null = brand.instagramHandle;
+---
+
+{
+  handle && (
+    <a class="invite ui" href={`https://www.instagram.com/${handle}/`} aria-label={name}>
+      <span class="invite__icons">
+        {/* The same glyph as InstagramLink.astro, which shows it only beside the handle. */}
+        <svg class="invite__instagram" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <rect x="2" y="2" width="20" height="20" rx="5.5" fill="none" stroke="currentColor" stroke-width="2" />
+          <circle cx="12" cy="12" r="4.6" fill="none" stroke="currentColor" stroke-width="2" />
+          <circle cx="17.6" cy="6.4" r="1.25" fill="currentColor" />
+        </svg>
+        <img class="invite__symbol" src={symbol.src} width={symbol.width} height={symbol.height} alt="" decoding="async" />
+      </span>
+      <span class="invite__label">{label}</span>
+    </a>
+  )
+}
+
+<style>
+  /* A quiet text link, at least a full tap target high. */
+  .invite {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: var(--tap-min);
+    color: var(--color-text);
+    text-decoration: none;
+  }
+
+  /* The gap keeps the two marks clearly apart, beyond the symbol's clear space. */
+  .invite__icons {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  /* A rounded square looks bigger than a circle of the same width, so the symbol's
+     frame is a little larger, and the two read as the same size. */
+  .invite__instagram {
+    display: block;
+    flex: none;
+    width: 1.75rem;
+    height: 1.75rem;
+    color: var(--color-brand);
+  }
+
+  .invite__symbol {
+    flex: none;
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .invite__label {
+    text-decoration: underline;
+    text-decoration-color: var(--color-rule);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.3em;
+  }
+
+  .invite:hover .invite__label {
+    text-decoration-color: currentColor;
+  }
+</style>

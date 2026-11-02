@@ -1,0 +1,300 @@
+---
+// The content of the İlham / Inspiration page, in the slot of SectionPage. Copy
+// and images: src/config/inspiration.ts. The three frames are always visible
+// together; there is no carousel, feed or embedded post.
+import { Image } from 'astro:assets';
+import { inspiration, inspirationImages, type InspirationSlotId } from '../../config/inspiration';
+import type { Lang } from '../../i18n/ui';
+import InstagramInvite from './InstagramInvite.astro';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const copy = inspiration[lang];
+
+// Each frame's rendered width, for the images' srcset.
+const slots: { id: InspirationSlotId; sizes: string }[] = [
+  { id: 'perspective', sizes: '(min-width: 48rem) 50vw, 100vw' },
+  { id: 'movement', sizes: '(min-width: 48rem) 42vw, 86vw' },
+  { id: 'awareness', sizes: '(min-width: 64rem) 75vw, (min-width: 48rem) 84vw, 100vw' },
+];
+---
+
+<div class="inspiration">
+  <div class="opening">
+    <p class="opening__statement">{copy.statement}</p>
+    <div class="opening__body">
+      <p class="opening__intro">{copy.intro}</p>
+      <InstagramInvite label={copy.exploreLink} />
+    </div>
+  </div>
+
+  <div class="slots">
+    {
+      slots.map(({ id, sizes }) => {
+        const image = inspirationImages[id];
+        return (
+          <figure class:list={['slot', `slot--${id}`]}>
+            <div class="slot__media" aria-hidden={image ? undefined : 'true'}>
+              {image ? (
+                <Image src={image.src} alt={image.alt[lang]} widths={[800, 1200, 1600, 2000]} sizes={sizes} class="slot__image" />
+              ) : id === 'perspective' ? (
+                // A view through a window: the site's ring, cropped, and one point on it.
+                <svg class="slot__art" viewBox="0 0 400 500" preserveAspectRatio="xMidYMid slice" focusable="false">
+                  <circle class="art-line art-line--brand" cx="250" cy="235" r="205" />
+                  <circle class="art-point art-point--accent" cx="105" cy="380" r="5" />
+                </svg>
+              ) : id === 'movement' ? (
+                // Three arcs swept from one corner, and one point moving along them.
+                <svg class="slot__art" viewBox="0 0 400 500" preserveAspectRatio="xMidYMid slice" focusable="false">
+                  <path class="art-line art-line--accent" d="M230 500A230 230 0 0 0 0 270" />
+                  <path class="art-line art-line--accent" d="M320 500A320 320 0 0 0 0 180" />
+                  <path class="art-line art-line--accent" d="M410 500A410 410 0 0 0 0 90" />
+                  <circle class="art-point art-point--brand" cx="226" cy="274" r="5" />
+                </svg>
+              ) : (
+                // The homepage's floor line, and what spreads out from one point on it.
+                <svg class="slot__art" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" focusable="false">
+                  <path class="art-line art-line--brand" d="M0 640H1600" />
+                  <path class="art-line art-line--brand" d="M930 640A110 110 0 0 1 1150 640" />
+                  <path class="art-line art-line--brand" d="M810 640A230 230 0 0 1 1270 640" />
+                  <path class="art-line art-line--brand" d="M690 640A350 350 0 0 1 1390 640" />
+                  <circle class="art-point art-point--accent" cx="1040" cy="640" r="8" />
+                </svg>
+              )}
+            </div>
+            <figcaption class="slot__title">{copy.slots[id]}</figcaption>
+          </figure>
+        );
+      })
+    }
+  </div>
+
+  <section class="closing" aria-labelledby="inspiration-closing">
+    <h2 class="closing__line" id="inspiration-closing">{copy.closing}</h2>
+    <div class="closing__invite">
+      <p class="closing__role">{copy.instagramRole}</p>
+      <InstagramInvite label={copy.followLink} name={copy.followLinkName} />
+    </div>
+  </section>
+</div>
+
+<style>
+  /* Phones: one column in the document's order. */
+  .inspiration {
+    overflow-wrap: break-word;
+  }
+
+  .opening {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-5);
+    padding-block: var(--space-5) var(--section-pad);
+  }
+
+  .opening__statement {
+    font-size: var(--text-cover);
+    font-weight: 350;
+    line-height: 1.08;
+    letter-spacing: -0.022em;
+    text-wrap: balance;
+  }
+
+  .opening__body {
+    display: grid;
+    justify-items: start;
+    gap: var(--space-3);
+  }
+
+  .opening__intro {
+    max-width: 36rem;
+    font-size: var(--text-lead);
+    line-height: 1.55;
+  }
+
+  .slots {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: var(--space-6);
+  }
+
+  .slot {
+    min-width: 0;
+    margin: 0;
+  }
+
+  /* A narrower frame against the right edge keeps the column from reading as a stack. */
+  .slot--movement {
+    width: 86%;
+    justify-self: end;
+  }
+
+  /* The frame sets the size, with or without an image in it. */
+  .slot__media {
+    position: relative;
+    aspect-ratio: 4 / 5;
+    overflow: hidden;
+    background: var(--color-panel);
+  }
+
+  .slot--movement .slot__media {
+    background: var(--color-tile);
+  }
+
+  .slot--awareness .slot__media {
+    aspect-ratio: 16 / 9;
+    background: var(--color-surface);
+  }
+
+  .slot__media :global(.slot__image),
+  .slot__art {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .slot__media :global(.slot__image) {
+    object-fit: cover;
+  }
+
+  .art-line {
+    fill: none;
+    stroke-width: 1px;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .art-line--brand {
+    stroke: var(--color-brand);
+  }
+
+  .art-line--accent {
+    stroke: var(--color-accent);
+  }
+
+  .art-point--brand {
+    fill: var(--color-brand);
+  }
+
+  .art-point--accent {
+    fill: var(--color-accent);
+  }
+
+  .slot__title {
+    margin-top: var(--space-3);
+    font-size: var(--text-card);
+    font-weight: 350;
+    line-height: 1.25;
+    letter-spacing: -0.008em;
+  }
+
+  .closing {
+    display: grid;
+    gap: var(--space-5);
+    margin-top: var(--section-pad);
+    padding-top: var(--section-pad);
+    border-top: 1px solid var(--color-rule);
+  }
+
+  .closing__line {
+    max-width: 44rem;
+    font-size: var(--text-cover);
+    font-weight: 350;
+    line-height: 1.08;
+    letter-spacing: -0.022em;
+    text-wrap: balance;
+  }
+
+  .closing__invite {
+    display: grid;
+    justify-items: start;
+    gap: var(--space-3);
+  }
+
+  .closing__role {
+    max-width: 36rem;
+    color: var(--color-muted);
+    font-size: var(--text-lead);
+    line-height: 1.55;
+  }
+
+  /* Tablets and phones held sideways: the two portraits side by side, the second lower. */
+  @media (min-width: 48rem), (orientation: landscape) and (max-height: 32rem) {
+    .slots {
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      column-gap: var(--space-4);
+    }
+
+    .slot--perspective {
+      grid-column: 1 / 7;
+    }
+
+    .slot--movement {
+      grid-column: 8 / 13;
+      justify-self: stretch;
+      width: auto;
+      margin-top: var(--space-6);
+    }
+
+    .slot--awareness {
+      grid-column: 3 / 13;
+    }
+  }
+
+  /* Desktop: twelve columns. The landscape frame's title sits in the margin beside
+     it, and the closing lines up with the frame's left edge. */
+  @media (min-width: 64rem) {
+    .opening {
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      column-gap: var(--space-4);
+      row-gap: var(--space-5);
+    }
+
+    .opening__statement {
+      grid-column: 1 / 10;
+    }
+
+    .opening__body {
+      grid-column: 4 / 10;
+    }
+
+    .slots {
+      row-gap: var(--space-7);
+    }
+
+    .slot--movement {
+      margin-top: var(--space-7);
+    }
+
+    .slot--awareness {
+      grid-column: 1 / 13;
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      column-gap: var(--space-4);
+    }
+
+    .slot--awareness .slot__media {
+      grid-column: 4 / 13;
+      grid-row: 1;
+    }
+
+    .slot--awareness .slot__title {
+      grid-column: 1 / 4;
+      grid-row: 1;
+      align-self: end;
+      margin-top: 0;
+    }
+
+    .closing {
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      column-gap: var(--space-4);
+    }
+
+    .closing__line,
+    .closing__invite {
+      grid-column: 4 / 13;
+    }
+  }
+</style>

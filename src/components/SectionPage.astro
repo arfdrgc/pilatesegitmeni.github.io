@@ -9,9 +9,11 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
 interface Props {
   id: MenuItem['id'];
+  /** The page's own meta description. Without it, the default below is used. */
+  description?: string;
 }
 
-const { id } = Astro.props;
+const { id, description } = Astro.props;
 const lang = getLang(Astro.currentLocale);
 const section = homeMenu.find((item) => item.id === id)!;
 const name = section.label[lang];
@@ -24,7 +26,7 @@ const descriptions = {
 };
 ---
 
-<BaseLayout title={`${name} | Pilates Eğitmeni`} description={descriptions[lang]} translations={section.to} lockup>
+<BaseLayout title={`${name} | Pilates Eğitmeni`} description={description ?? descriptions[lang]} translations={section.to} lockup>
   <div class="section-page container">
     <h1 class="section-page__title display">{name}</h1>
     <div class="section-page__content">

@@ -1,18 +1,11 @@
 ---
-// Developer note. This is a structural page only. Planned direction (Arif,
-// 2026-11-01), not built: an introduction to @pilatesegitmeni with a direct link
-// to the profile, three manually selected featured posts, then a grid of the
-// latest nine posts, so editorial selection combined with automatic updates.
-// Before building it:
-// - The latest posts would probably need Meta's official Instagram API; check its
-//   current requirements first. No scraping and no third-party widgets.
-// - The site is static, so an access token can't reach the browser: posts would
-//   be fetched at build time. deploy.yml is manual and each deployment needs
-//   Arif's approval, so the grid would only change when a deployment is approved.
-// - Two current rules would need Arif's approval to change: "plain links, not
-//   embedded feeds" (CLAUDE.md), and check-dist, which allows only the profile URL,
-//   so a link to a single post fails the build.
+// Plain links to the Instagram profile only: no API, feed, embedded post or
+// carousel. Content: ../components/inspiration/InspirationArticle.astro.
+import InspirationArticle from '../components/inspiration/InspirationArticle.astro';
 import SectionPage from '../components/SectionPage.astro';
+import { inspiration } from '../config/inspiration';
 ---
 
-<SectionPage id="inspiration" />
+<SectionPage id="inspiration" description={inspiration.tr.description}>
+  <InspirationArticle lang="tr" />
+</SectionPage>

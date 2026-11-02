@@ -1,6 +1,10 @@
 ---
-// Structural page only; the planned Instagram showcase is described in ../ilham.astro.
+// Plain links to the Instagram profile only; see ../ilham.astro.
+import InspirationArticle from '../../components/inspiration/InspirationArticle.astro';
 import SectionPage from '../../components/SectionPage.astro';
+import { inspiration } from '../../config/inspiration';
 ---
 
-<SectionPage id="inspiration" />
+<SectionPage id="inspiration" description={inspiration.en.description}>
+  <InspirationArticle lang="en" />
+</SectionPage>
