@@ -1,0 +1,486 @@
+---
+// The Contrology page's content, for the slot of SectionPage on /contrology/
+// and /en/contrology/ (and the development preview's copy of that frame), so
+// the pages and the preview can't drift apart. Copy, quotations, illustration
+// labels and sources: src/config/contrology.ts (Revision 4).
+//
+// Reading order: the opening (lead and the menu's orbit mark), a contents list,
+// six numbered sections, the closing with the link to Miras / Legacy, and the
+// compact bibliography. Each section's number and heading sit in a narrow
+// column beside its text from laptops up. Quotations: Q2 on the one sage panel,
+// Q5 and Q7 as quiet pull quotes. Illustrations: ContrologyFigure.astro.
+// SVG and CSS only, no script.
+import {
+  contrologyBookTitle,
+  contrologyClosing,
+  contrologyLabels,
+  contrologyMiras,
+  contrologyOpening,
+  contrologyQuotes,
+  contrologySections,
+  contrologySources,
+  type Run,
+} from '../../config/contrology';
+import type { Lang } from '../../i18n/ui';
+import ContrologyFigure from './ContrologyFigure.astro';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const labels = contrologyLabels[lang];
+/** English titles and originals get lang="en" on the Turkish page. */
+const english = lang === 'en' ? undefined : 'en';
+const number = (index: number) => String(index + 1).padStart(2, '0');
+const isTitle = (run: Run): run is { title: string } => typeof run !== 'string' && 'title' in run;
+---
+
+<div class="contrology">
+  <header class="opening">
+    <div class="opening__text">
+      {
+        contrologyOpening[lang].map((paragraph, index) => (
+          <p class:list={[index === 0 ? 'opening__lead' : 'opening__intro']}>
+            {paragraph.map((run) => (typeof run === 'string' ? run : isTitle(run) ? <cite lang={english}>{run.title}</cite> : <a href={run.href}>{run.text}</a>))}
+          </p>
+        ))
+      }
+    </div>
+    <svg class="orbit" viewBox="0 0 240 240" aria-hidden="true" focusable="false">
+      <circle class="orbit__line" cx="120" cy="120" r="90" />
+      <circle class="orbit__dot" cx="120" cy="120" r="5" />
+      <circle class="orbit__dot" cx="183.64" cy="56.36" r="5.3" />
+    </svg>
+  </header>
+
+  <nav class="contents" aria-labelledby="contrology-contents">
+    <h2 class="contents__title label" id="contrology-contents">{labels.contents}</h2>
+    <ol class="contents__list">
+      {
+        contrologySections.map((section, index) => (
+          <li>
+            <a class="contents__link" href={`#${section.id}`}>
+              <span class="contents__number" aria-hidden="true">
+                {number(index)}
+              </span>
+              <span>{section.title[lang]}</span>
+            </a>
+          </li>
+        ))
+      }
+    </ol>
+  </nav>
+
+  {
+    contrologySections.map((section, index) => (
+      <section class="part" id={section.id} aria-labelledby={`${section.id}-title`}>
+        <header class="part__head">
+          <p class="part__number" aria-hidden="true">
+            {number(index)}
+          </p>
+          <h2 class="part__title" id={`${section.id}-title`}>
+            {section.title[lang]}
+          </h2>
+        </header>
+        <div class="part__body">
+          {section.blocks.map((block) => {
+            if (block.kind === 'paragraph') {
+              return <p class="part__text">{block.text[lang].map((run) => (typeof run === 'string' ? run : isTitle(run) ? <cite lang={english}>{run.title}</cite> : <a href={run.href}>{run.text}</a>))}</p>;
+            }
+            if (block.kind === 'figure') {
+              return <ContrologyFigure id={block.id} lang={lang} />;
+            }
+            const quote = contrologyQuotes[block.id];
+            return (
+              <figure class:list={['quote', quote.full && 'quote--definition']}>
+                <blockquote class="quote__body">
+                  {lang === 'tr' ? (
+                    <>
+                      <p class="quote__text">“{quote.tr}”</p>
+                      <p class="quote__original" lang="en">
+                        {quote.original}
+                      </p>
+                    </>
+                  ) : (
+                    <p class="quote__text">“{quote.original}”</p>
+                  )}
+                </blockquote>
+                <figcaption class="quote__source">
+                  <span>
+                    {labels.authors},{' '}
+                    {quote.full && (
+                      <>
+                        <cite lang={english}>{contrologyBookTitle}</cite>,{' '}
+                      </>
+                    )}
+                    1945, {labels.page} {quote.page}
+                  </span>
+                </figcaption>
+              </figure>
+            );
+          })}
+        </div>
+      </section>
+    ))
+  }
+
+  <div class="closing">
+    <p class="closing__text">
+      {contrologyClosing[lang].map((run) => (typeof run === 'string' ? run : isTitle(run) ? <cite lang={english}>{run.title}</cite> : <a href={run.href}>{run.text}</a>))}
+    </p>
+    <a class="closing__link ui" href={contrologyMiras[lang].href}>
+      <svg class="closing__mark" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <circle class="orbit__line" cx="12" cy="12" r="8.5" />
+        <circle class="orbit__dot" cx="12" cy="12" r="1.9" />
+        <circle class="orbit__dot" cx="18.01" cy="5.99" r="2" />
+      </svg>
+      <span>{labels.next}</span>
+      <span aria-hidden="true">→</span>
+    </a>
+  </div>
+
+  <section class="sources" aria-labelledby="contrology-sources">
+    <h2 class="sources__title" id="contrology-sources">{labels.sources}</h2>
+    <ul class="sources__list">
+      {
+        contrologySources.map((reference) => (
+          <li>
+            <span lang={english}>
+              {reference.before}
+              <cite>{reference.title}</cite>
+              {reference.after}
+            </span>
+            {reference.link && (
+              <>
+                {' '}
+                <a href={reference.link.href} lang={english}>
+                  {reference.link.label}
+                </a>
+                {'.'}
+              </>
+            )}
+            {reference.note && <> {reference.note[lang]}</>}
+          </li>
+        ))
+      }
+    </ul>
+    {labels.translations && <p class="sources__note">{labels.translations}</p>}
+  </section>
+</div>
+
+<style>
+  .contrology {
+    --text-width: 36rem;
+    overflow-wrap: break-word;
+  }
+
+  /* The orbit: the menu's Contrology icon, brand green lines on paper only. */
+  .orbit__line {
+    fill: none;
+    stroke: var(--color-brand);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .orbit__dot {
+    fill: var(--color-brand);
+  }
+
+  /* Opening: a lead, a short note, the orbit mark. */
+  .opening {
+    display: grid;
+    gap: var(--space-5);
+    padding-block: var(--space-5) var(--space-6);
+  }
+
+  .opening__text {
+    display: grid;
+    gap: var(--space-4);
+    max-width: 40rem;
+  }
+
+  .opening__lead {
+    font-size: var(--text-card);
+    font-weight: 350;
+    line-height: 1.4;
+    letter-spacing: -0.008em;
+  }
+
+  .opening__intro {
+    max-width: var(--text-width);
+    color: var(--color-muted);
+  }
+
+  .orbit {
+    display: block;
+    width: clamp(6rem, 4rem + 8vw, 11rem);
+    height: auto;
+    overflow: visible;
+  }
+
+  /* Contents: the six sections, numbered. */
+  .contents {
+    padding-block: var(--space-4) var(--space-5);
+    border-top: 1px solid var(--color-rule);
+  }
+
+  .contents__title {
+    margin-bottom: var(--space-3);
+    color: var(--color-muted);
+  }
+
+  .contents__list {
+    display: grid;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .contents__link {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-3);
+    min-height: var(--tap-min);
+    padding-block: var(--space-2);
+    color: var(--color-text);
+    text-decoration: none;
+  }
+
+  .contents__link:hover span:last-child {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+  }
+
+  .contents__number,
+  .part__number {
+    color: var(--color-accent);
+    font-family: var(--font-sans);
+    font-size: var(--text-label);
+    font-weight: 500;
+    letter-spacing: var(--tracking-label);
+  }
+
+  /* Sections: a hairline, the number and heading, then short text blocks. */
+  .part {
+    display: grid;
+    gap: var(--space-4);
+    padding-block: var(--space-6);
+    border-top: 1px solid var(--color-rule);
+    scroll-margin-top: var(--space-4);
+  }
+
+  .part__head {
+    display: grid;
+    align-content: start;
+    gap: var(--space-2);
+  }
+
+  .part__title {
+    max-width: 20ch;
+    font-size: var(--text-h2);
+    font-weight: 350;
+    letter-spacing: var(--tracking-heading);
+  }
+
+  .part__body {
+    display: grid;
+    gap: var(--space-4);
+    max-width: 40rem;
+  }
+
+  .part__text {
+    max-width: var(--text-width);
+  }
+
+  /* Pull quotes: the book's words, larger, beside a green hairline. */
+  .quote {
+    display: grid;
+    gap: var(--space-3);
+    margin-block: var(--space-2);
+    padding-left: var(--space-4);
+    border-left: 1px solid var(--color-brand);
+  }
+
+  .quote__body {
+    display: grid;
+    gap: var(--space-2);
+    margin: 0;
+  }
+
+  .quote__text {
+    max-width: 30rem;
+    font-size: var(--text-card);
+    font-weight: 350;
+    line-height: 1.3;
+    letter-spacing: -0.008em;
+  }
+
+  .quote__original {
+    max-width: 30rem;
+    color: var(--color-muted);
+    font-style: italic;
+    line-height: 1.45;
+  }
+
+  .quote__source {
+    color: var(--color-muted);
+    font-family: var(--font-sans);
+    font-size: var(--text-small);
+    line-height: 1.5;
+  }
+
+  /* The definition: the page's one sage panel; no green line on it. */
+  .quote--definition {
+    padding: var(--space-5) var(--space-4);
+    border-left: 0;
+    background: var(--color-panel);
+  }
+
+  .quote--definition .quote__text {
+    max-width: 24ch;
+    font-size: var(--text-h2);
+    font-weight: 300;
+    line-height: 1.12;
+    letter-spacing: var(--tracking-heading);
+    text-wrap: balance;
+  }
+
+  /* Closing: the page's scope and the way on to Miras / Legacy. */
+  .closing {
+    display: grid;
+    gap: var(--space-4);
+    padding-block: var(--space-6);
+    border-top: 1px solid var(--color-rule);
+  }
+
+  .closing__text {
+    max-width: var(--text-width);
+    font-size: var(--text-lead);
+    line-height: 1.55;
+  }
+
+  .closing__link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    justify-self: start;
+    min-height: var(--tap-min);
+    color: var(--color-accent);
+    font-size: var(--text-body);
+    text-decoration: none;
+  }
+
+  .closing__link:hover span:nth-of-type(1) {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+  }
+
+  .closing__mark {
+    width: 1.5rem;
+    height: 1.5rem;
+    overflow: visible;
+  }
+
+  .closing__mark .orbit__line {
+    stroke-width: 1.5;
+  }
+
+  /* Sources: compact, in interface type, as on Bedenin Dili and Miras. */
+  .sources {
+    padding-block: var(--space-5);
+    border-top: 1px solid var(--color-rule);
+    color: var(--color-muted);
+    font-family: var(--font-sans);
+    font-size: var(--text-small);
+    line-height: 1.55;
+  }
+
+  .sources__title {
+    margin-bottom: var(--space-4);
+    color: var(--color-text);
+    font-family: var(--font-serif);
+    font-size: var(--text-card);
+    font-weight: 350;
+    letter-spacing: -0.008em;
+  }
+
+  .sources__list {
+    display: grid;
+    gap: var(--space-2);
+    max-width: 48rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .sources__note {
+    margin-top: var(--space-4);
+  }
+
+  @media (min-width: 48rem) {
+    .opening {
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      column-gap: var(--space-6);
+    }
+
+    .contents__list {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      column-gap: var(--space-5);
+    }
+
+    .quote {
+      padding-left: var(--space-5);
+    }
+
+    .quote--definition {
+      padding: var(--space-6) var(--space-5);
+    }
+  }
+
+  /* From laptops: the number and heading in a column beside the text. */
+  @media (min-width: 64rem) {
+    .contents__list {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .part {
+      grid-template-columns: minmax(0, 17rem) minmax(0, 44rem);
+      column-gap: var(--space-6);
+      padding-block: var(--space-7);
+    }
+
+    .part__head {
+      position: sticky;
+      top: var(--space-5);
+      align-self: start;
+    }
+
+    .part__title {
+      font-size: clamp(2rem, 1.2rem + 1.25vw, 2.5rem);
+    }
+
+    .closing,
+    .sources {
+      grid-template-columns: minmax(0, 17rem) minmax(0, 44rem);
+      column-gap: var(--space-6);
+    }
+
+    .closing > *,
+    .sources > :not(.sources__title) {
+      grid-column: 2;
+    }
+
+    .sources {
+      display: grid;
+    }
+
+    .sources__title {
+      grid-column: 1;
+      grid-row: 1 / span 2;
+    }
+  }
+</style>

@@ -1,5 +1,11 @@
 ---
+// Content: ../../components/contrology/ContrologyArticle.astro; copy,
+// quotations, illustration labels and sources: ../../config/contrology.ts.
+import ContrologyArticle from '../../components/contrology/ContrologyArticle.astro';
 import SectionPage from '../../components/SectionPage.astro';
+import { contrologyDescription } from '../../config/contrology';
 ---
 
-<SectionPage id="contrology" />
+<SectionPage id="contrology" description={contrologyDescription.en}>
+  <ContrologyArticle lang="en" />
+</SectionPage>
