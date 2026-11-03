@@ -1,0 +1,62 @@
+---
+// One photograph of the Miras / Legacy page (src/config/legacy.ts), shown
+// whole: no crop, no recolouring; Astro only resizes it for the srcset. Its
+// width comes from the wrapper LegacyArticle puts around it.
+//
+// No visible caption unless the owner supplies one with its credit; the alt
+// text describes the photograph meanwhile.
+import { Image } from 'astro:assets';
+import { legacyPhotos, type LegacyPhotoId } from '../../config/legacy';
+import type { Lang } from '../../i18n/ui';
+
+interface Props {
+  lang: Lang;
+  id: LegacyPhotoId;
+  sizes: string;
+  /** The opening's photograph is in the first screen: load it at once. */
+  eager?: boolean;
+}
+
+const { lang, id, sizes, eager = false } = Astro.props;
+const photo = legacyPhotos[id];
+const caption = photo.caption && photo.credit ? photo.caption[lang] : null;
+---
+
+<figure class="photo">
+  <Image
+    src={photo.src}
+    alt={photo.alt[lang]}
+    widths={photo.widths}
+    sizes={sizes}
+    loading={eager ? 'eager' : 'lazy'}
+    class="photo__image"
+  />
+  {
+    caption && (
+      <figcaption class="photo__caption">
+        {caption} <span class="photo__credit">{photo.credit}</span>
+      </figcaption>
+    )
+  }
+</figure>
+
+<style>
+  .photo {
+    display: grid;
+    align-content: start;
+    gap: var(--space-2);
+  }
+
+  .photo :global(.photo__image) {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .photo__caption {
+    color: var(--color-muted);
+    font-family: var(--font-sans);
+    font-size: var(--text-small);
+    line-height: 1.5;
+  }
+</style>

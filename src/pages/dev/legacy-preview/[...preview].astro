@@ -1,0 +1,13 @@
+---
+// TEMPORARY development-only route: /dev/legacy-preview/, the Miras layout
+// preview (src/dev/LegacyPreview.astro). A production build gets no paths, so
+// it emits no page, and the preview is imported only under `astro dev`, so its
+// CSS and images aren't bundled either. Remove once the owner has reviewed it.
+export function getStaticPaths() {
+  return import.meta.env.DEV ? [{ params: { preview: undefined } }] : [];
+}
+
+const Preview = import.meta.env.DEV ? (await import('../../../dev/LegacyPreview.astro')).default : null;
+---
+
+{Preview && <Preview />}

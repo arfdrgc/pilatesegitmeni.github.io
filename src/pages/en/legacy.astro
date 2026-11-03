@@ -1,5 +1,12 @@
 ---
+// Content: ../../components/legacy/LegacyArticle.astro; copy, sources, figures
+// and photographs: ../../config/legacy.ts. The meta description is the page's
+// own opening sentence, [0.1].
+import LegacyArticle from '../../components/legacy/LegacyArticle.astro';
 import SectionPage from '../../components/SectionPage.astro';
+import { legacyCopy } from '../../config/legacy';
 ---
 
-<SectionPage id="legacy" />
+<SectionPage id="legacy" description={legacyCopy.en['0.1']}>
+  <LegacyArticle lang="en" />
+</SectionPage>

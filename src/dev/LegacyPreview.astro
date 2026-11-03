@@ -1,0 +1,65 @@
+---
+// TEMPORARY development-only preview of the Miras / Legacy layout: LegacyArticle
+// inside a copy of the real page's frame, so the approved design ("Following a
+// life", 2026-11-03) can be reviewed before the component goes on /miras/ and
+// /en/legacy/. Rendered by the routes in src/pages/dev/legacy-preview/ and
+// src/pages/en/dev/legacy-preview/ under `astro dev` only; a production build
+// has no such page. Remove all three files once the owner has reviewed it.
+//
+// Why a copy of the frame and not SectionPage itself: SectionPage passes the
+// real pages' paths as `translations`, and SeoHead requires them to include the
+// current page, so it can't render at a preview URL. The markup and styles
+// below mirror src/components/SectionPage.astro; that file is unchanged.
+//
+// It shows the full page copy (src/config/legacy.ts) and no development notice.
+import LegacyArticle from '../components/legacy/LegacyArticle.astro';
+import { homeMenu } from '../config/home-menu';
+import { getLang, homePath, t } from '../i18n/utils';
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const lang = getLang(Astro.currentLocale);
+const name = homeMenu.find((item) => item.id === 'legacy')!.label[lang];
+const translations = { tr: '/dev/legacy-preview/', en: '/en/dev/legacy-preview/' };
+---
+
+<BaseLayout title={`${name} (dev preview) | Pilates Eğitmeni`} translations={translations} lockup>
+  <div class="section-page container">
+    <h1 class="section-page__title display">{name}</h1>
+    <div class="section-page__content">
+      <LegacyArticle lang={lang} />
+    </div>
+    <a class="section-page__home ui" href={homePath(lang)}>{t(lang).backToHome}</a>
+  </div>
+</BaseLayout>
+
+<style>
+  /* As in src/components/SectionPage.astro. */
+  .section-page {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding-block: var(--section-pad);
+  }
+
+  .section-page__content {
+    align-self: stretch;
+    min-height: min(45svh, 28rem);
+    margin-block: var(--space-5);
+    border-top: 1px solid var(--color-rule);
+  }
+
+  .section-page__home {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 3rem;
+    padding-inline: var(--space-4);
+    border: 1px solid var(--color-text);
+    color: var(--color-text);
+    text-decoration: none;
+  }
+
+  .section-page__home:hover {
+    box-shadow: inset 0 0 0 1px var(--color-text);
+  }
+</style>

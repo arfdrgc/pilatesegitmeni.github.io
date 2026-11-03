@@ -1,0 +1,48 @@
+---
+// One paragraph of the Miras / Legacy page, by its Draft copy label ([2.3]…).
+// The label is for configuration and the source map only; the page never
+// shows it. The type size comes from the wrapper LegacyArticle puts around it.
+//
+// The war-years paragraphs open with their run-in label (`legacyVoiceLabels`);
+// later accounts are set off by a hairline on the left. Copy held for legal
+// review renders only while `legacyLegalReview.cleared` is true. A paragraph
+// without copy renders nothing.
+import { legacyCopy, legacyLegalReview, legacyVoiceLabels, legacyVoices, type LegacyParagraphId } from '../../config/legacy';
+import type { Lang } from '../../i18n/ui';
+
+interface Props {
+  lang: Lang;
+  id: LegacyParagraphId;
+}
+
+const { lang, id } = Astro.props;
+const blocked = !legacyLegalReview.cleared && legacyLegalReview.paragraphs.includes(id);
+const text = blocked ? undefined : legacyCopy[lang][id];
+const voice = legacyVoices[id];
+const voiceLabel = legacyVoiceLabels[lang][id];
+---
+
+{
+  text && (
+    <p class:list={['paragraph', voice && `paragraph--${voice}`]}>
+      {voiceLabel && (
+        <>
+          <strong class="paragraph__label">{voiceLabel}</strong>{' '}
+        </>
+      )}
+      {text}
+    </p>
+  )
+}
+
+<style>
+  .paragraph__label {
+    font-weight: 600;
+  }
+
+  /* Later accounts: the body's own type, set off by a hairline on the left. */
+  .paragraph--accounts {
+    padding-left: var(--space-4);
+    border-left: 1px solid var(--color-rule);
+  }
+</style>
