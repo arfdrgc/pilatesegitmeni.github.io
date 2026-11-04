@@ -1,0 +1,24 @@
+---
+// Development-only preview of the homepage's first editorial section: the
+// production homepage (same layout props, same ComingSoon component) with the
+// section after the intro. astro.config.mjs injects this route at
+// /dev/home-editorial/ and /en/dev/home-editorial/ under `astro dev` only, so a
+// production build never compiles it. The section isn't on / or /en/ until the
+// owner approves that.
+//
+// Not a /dev/[prototype]/ page on purpose: those pages also load a global body
+// rule from prototypes/home-intro/UpStretchConcept.astro in development, which
+// replaces the site's fonts and insets the footer.
+import ComingSoon from '../components/ComingSoon.astro';
+import EditorialSection from '../components/home/EditorialSection.astro';
+import { getLang } from '../i18n/utils';
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const lang = getLang(Astro.currentLocale);
+const translations = { tr: '/dev/home-editorial/', en: '/en/dev/home-editorial/' };
+---
+
+<BaseLayout title="Home editorial section (dev)" translations={translations} lockup ritual>
+  <ComingSoon lang={lang} />
+  <EditorialSection lang={lang} />
+</BaseLayout>

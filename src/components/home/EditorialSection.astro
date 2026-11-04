@@ -1,0 +1,124 @@
+---
+// The homepage's first editorial section, for the place after the intro. For
+// now it's shown only on the dev preview (src/dev/HomeEditorialPreview.astro).
+// Copy and image: src/config/home-editorial.ts.
+import { Image } from 'astro:assets';
+import { homeEditorial, homeEditorialImage as image } from '../../config/home-editorial';
+import type { Lang } from '../../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const copy = homeEditorial[lang];
+// The heading's two clauses, each starting on its own line.
+const clauses = copy.heading.split(/(?<=,)\s/);
+---
+
+<section class="editorial" aria-labelledby="editorial-heading">
+  <div class="container editorial__grid">
+    <h2 class="editorial__heading" id="editorial-heading">{clauses.map((clause, i) => <><span class="editorial__clause">{clause}</span>{i < clauses.length - 1 && ' '}</>)}</h2>
+    <div class="editorial__media">
+      {
+        image && (
+          <Image
+            src={image.src}
+            alt={image.alt[lang]}
+            widths={[800, 1200, 1600]}
+            sizes="(min-width: 48rem) 58vw, 100vw"
+            class="editorial__image"
+          />
+        )
+      }
+    </div>
+    <p class="editorial__text">{copy.paragraph}</p>
+  </div>
+</section>
+
+<style>
+  .editorial {
+    padding-block: var(--section-pad);
+  }
+
+  /* Phones: heading, image, paragraph, in the document's order. */
+  .editorial__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-5);
+  }
+
+  .editorial__heading {
+    font-size: var(--text-cover);
+    font-weight: 350;
+    line-height: 1.05;
+    letter-spacing: -0.022em;
+  }
+
+  .editorial__clause {
+    display: block;
+  }
+
+  /* The frame sets the size, with or without an image in it. */
+  .editorial__media {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    background: var(--color-surface);
+  }
+
+  .editorial__media :global(.editorial__image) {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .editorial__text {
+    max-width: 34rem;
+    color: var(--color-muted);
+    font-size: var(--text-lead);
+    line-height: 1.55;
+  }
+
+  /* Tablets and phones held sideways: heading beside the image, paragraph below. */
+  @media (min-width: 48rem), (orientation: landscape) and (max-height: 32rem) {
+    .editorial__grid {
+      grid-template-columns: minmax(0, 6fr) minmax(0, 7fr);
+      grid-template-areas:
+        'heading media'
+        'text text';
+      column-gap: 2rem;
+    }
+
+    .editorial__heading {
+      grid-area: heading;
+    }
+
+    .editorial__media {
+      grid-area: media;
+      align-self: start;
+    }
+
+    .editorial__text {
+      grid-area: text;
+    }
+  }
+
+  /* Desktop: the heading at the image's top, the paragraph at its bottom. */
+  @media (min-width: 64rem) {
+    .editorial__grid {
+      grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+      column-gap: clamp(2rem, 5vw, 6rem);
+      grid-template-rows: auto 1fr;
+      grid-template-areas:
+        'heading media'
+        'text media';
+    }
+
+    .editorial__text {
+      align-self: end;
+    }
+  }
+</style>

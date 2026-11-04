@@ -36,6 +36,11 @@ export default defineConfig({
           for (const pattern of ['/dev/home', '/en/dev/home']) {
             injectRoute({ pattern, entrypoint: './src/dev/HomePreview.astro' });
           }
+          // The first editorial section after the intro, previewed before it
+          // goes on the homepage. Same rule: `astro dev` only.
+          for (const pattern of ['/dev/home-editorial', '/en/dev/home-editorial']) {
+            injectRoute({ pattern, entrypoint: './src/dev/HomeEditorialPreview.astro' });
+          }
         },
       },
     },
