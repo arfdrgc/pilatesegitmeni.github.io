@@ -1,5 +1,11 @@
 ---
+// Content: ../../components/principles/PrinciplesArticle.astro; copy, source
+// labels and sources: ../../config/principles.ts.
+import PrinciplesArticle from '../../components/principles/PrinciplesArticle.astro';
 import SectionPage from '../../components/SectionPage.astro';
+import { principlesDescription } from '../../config/principles';
 ---
 
-<SectionPage id="principles" />
+<SectionPage id="principles" description={principlesDescription.en}>
+  <PrinciplesArticle lang="en" />
+</SectionPage>

@@ -1,0 +1,82 @@
+---
+// Development-only preview of the 7 Prensip / The 7 Principles page:
+// PrinciplesArticle inside a copy of the real page's frame. Rendered by the
+// routes in src/pages/dev/seven-principles-preview/ and
+// src/pages/en/dev/seven-principles-preview/ under `astro dev` only; a
+// production build has no such page. /7-prensip/ and /en/7-principles/ render
+// the same component and config, so the two can't drift apart. Remove this file
+// and the two routes when no longer needed; the article and its config stay
+// for production.
+//
+// Why a copy of the frame and not SectionPage itself: SectionPage passes the
+// real pages' paths as `translations`, and SeoHead requires them to include the
+// current page, so it can't render at a preview URL (as in
+// ContrologyPreview.astro). The markup and styles below mirror
+// src/components/SectionPage.astro; that file is unchanged.
+//
+// The notice under the heading is development-only (data-dev-only).
+import PrinciplesArticle from '../components/principles/PrinciplesArticle.astro';
+import { homeMenu } from '../config/home-menu';
+import { principlesDescription } from '../config/principles';
+import { getLang, homePath, t } from '../i18n/utils';
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const lang = getLang(Astro.currentLocale);
+const name = homeMenu.find((item) => item.id === 'principles')!.label[lang];
+const translations = { tr: '/dev/seven-principles-preview/', en: '/en/dev/seven-principles-preview/' };
+const notice = {
+  tr: 'Geliştirme önizlemesi: /7-prensip/ sayfası için onaylanan metin (revizyon 3). Sayfa henüz yayında değil.',
+  en: 'Development preview: the approved copy (revision 3) for /en/7-principles/. The page is not live yet.',
+};
+---
+
+<BaseLayout title={`${name} (dev preview) | Pilates Eğitmeni`} description={principlesDescription[lang]} translations={translations} lockup>
+  <div class="section-page container">
+    <h1 class="section-page__title display">{name}</h1>
+    <p class="preview-notice ui" data-dev-only>{notice[lang]}</p>
+    <div class="section-page__content">
+      <PrinciplesArticle lang={lang} />
+    </div>
+    <a class="section-page__home ui" href={homePath(lang)}>{t(lang).backToHome}</a>
+  </div>
+</BaseLayout>
+
+<style>
+  /* As in src/components/SectionPage.astro. */
+  .section-page {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding-block: var(--section-pad);
+  }
+
+  .section-page__content {
+    align-self: stretch;
+    min-height: min(45svh, 28rem);
+    margin-block: var(--space-5);
+    border-top: 1px solid var(--color-rule);
+  }
+
+  .section-page__home {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 3rem;
+    padding-inline: var(--space-4);
+    border: 1px solid var(--color-text);
+    color: var(--color-text);
+    text-decoration: none;
+  }
+
+  .section-page__home:hover {
+    box-shadow: inset 0 0 0 1px var(--color-text);
+  }
+
+  /* Development only. */
+  .preview-notice {
+    max-width: 36rem;
+    margin-top: var(--space-4);
+    color: var(--color-muted);
+    font-size: var(--text-small);
+  }
+</style>
