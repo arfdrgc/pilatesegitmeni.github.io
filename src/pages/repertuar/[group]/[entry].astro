@@ -1,0 +1,19 @@
+---
+// Repertuar movement pages and sub-apparatus pages (tr), which share
+// /<group>/<entry>/; src/lib/repertoire.ts guarantees no two use one path.
+// A movement's URL never includes its sub-apparatus.
+import GroupPage from '../../../components/repertoire/GroupPage.astro';
+import MovementPage from '../../../components/repertoire/MovementPage.astro';
+import { getRepertoire, type GroupPageProps, type MovementPageProps } from '../../../lib/repertoire';
+
+export async function getStaticPaths() {
+  const repertoire = await getRepertoire();
+  return [...repertoire.movementPages.tr, ...repertoire.subApparatusPages.tr];
+}
+
+type Props = MovementPageProps | GroupPageProps;
+
+const props = Astro.props;
+---
+
+{'variant' in props ? <GroupPage {...props} /> : <MovementPage {...props} />}

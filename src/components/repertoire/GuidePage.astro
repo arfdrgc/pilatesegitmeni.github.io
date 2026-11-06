@@ -1,0 +1,62 @@
+---
+// A context guide (D5, D6): title, intro, the D1 disclosure on a protected
+// guide without an approved review (its own block, separate from the limits,
+// R6), the limits, the curated movements with their notes, and the sources.
+// Being listed never implies suitability for everyone in the group.
+import { Image } from 'astro:assets';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import type { GuidePageProps } from '../../lib/repertoire';
+import DevPlaceholder from '../DevPlaceholder.astro';
+import MovementList from './MovementList.astro';
+import SourceList from './SourceList.astro';
+import Statement from './Statement.astro';
+
+type Props = GuidePageProps;
+
+const page = Astro.props;
+const { copy } = page;
+const ui = copy.ui;
+---
+
+<BaseLayout title={`${page.title} | Pilates Eğitmeni`} description={page.intro[0]?.text} translations={page.translations} lockup>
+  <article class="container">
+    <slot name="notice" />
+    <nav aria-label={ui?.breadcrumb}>
+      <ol class="ui">
+        <li><a href={page.breadcrumb.landing.href}>{page.breadcrumb.landing.label}</a></li>
+      </ol>
+    </nav>
+    <h1 class="display">{page.title}</h1>
+    {
+      page.media.map((media) => (
+        <figure data-kind={media.kind}>
+          <Image src={media.src} alt={media.alt} widths={[640, 1280]} sizes="(min-width: 60rem) 40rem, 100vw" />
+          <figcaption class="ui">
+            {media.credit} · {media.license}
+          </figcaption>
+        </figure>
+      ))
+    }
+    {page.intro.map((statement) => <Statement statement={statement} voiceLabels={copy.voiceLabels} />)}
+    {
+      page.disclosure && (
+        <aside data-disclosure>
+          <p>{copy.d1 ?? <DevPlaceholder label="D1 (not reviewed)" />}</p>
+        </aside>
+      )
+    }
+    <section>
+      <h2>{ui?.limits ?? <DevPlaceholder label="uiLabels.limits" />}</h2>
+      {page.limits.map((statement) => <Statement statement={statement} voiceLabels={copy.voiceLabels} />)}
+    </section>
+    {
+      page.entries.length > 0 && (
+        <section>
+          <h2>{ui?.movements ?? <DevPlaceholder label="uiLabels.movements" />}</h2>
+          <MovementList movements={page.entries} copy={copy} />
+        </section>
+      )
+    }
+    <SourceList sources={page.sources} copy={copy} />
+  </article>
+</BaseLayout>

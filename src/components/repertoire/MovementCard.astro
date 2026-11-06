@@ -1,0 +1,37 @@
+---
+// One movement in a list: its name and page link, its first summary
+// statement, its facets (as data attributes too, for the filter script that
+// D9 adds later), its first visual, and a guide's note when listed in a guide.
+import { Image } from 'astro:assets';
+import type { MovementCardProps, PageCopy } from '../../lib/repertoire';
+import DevPlaceholder from '../DevPlaceholder.astro';
+import Statement from './Statement.astro';
+
+interface Props {
+  card: MovementCardProps;
+  copy: PageCopy;
+}
+
+const { card, copy } = Astro.props;
+const ui = copy.ui;
+---
+
+<article
+  data-level={card.facets.level.key}
+  data-focus={card.facets.focus.map((f) => f.key).join(' ')}
+  data-position={card.facets.startingPosition.key}
+>
+  <h3><a href={card.href}>{card.name}</a></h3>
+  {card.media && <Image src={card.media.src} alt={card.media.alt} widths={[320, 640]} sizes="(min-width: 40rem) 20rem, 100vw" />}
+  <p>{card.summary}</p>
+  <dl class="ui">
+    <dt>{ui?.level ?? <DevPlaceholder label="uiLabels.level" />}</dt>
+    <dd>{card.facets.level.label}</dd>
+    <dt>{ui?.focus ?? <DevPlaceholder label="uiLabels.focus" />}</dt>
+    <dd>{card.facets.focus.map((f) => f.label).join(', ')}</dd>
+    <dt>{ui?.startingPosition ?? <DevPlaceholder label="uiLabels.startingPosition" />}</dt>
+    <dd>{card.facets.startingPosition.label}</dd>
+  </dl>
+  {card.editorialExample && <p class="label">{copy.editorialExample ?? <DevPlaceholder label="editorial-example marker" />}</p>}
+  {card.note && <Statement statement={card.note} voiceLabels={copy.voiceLabels} />}
+</article>

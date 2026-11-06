@@ -1,0 +1,35 @@
+---
+// One statement: its text, its voice label unless editorial (R5), its short
+// citations, and its internal links as a list (no inline markup, R3).
+// Plain structure, no styles of its own (Q10).
+import type { SourceVoice } from '../../config/repertoire';
+import type { ResolvedStatement } from '../../lib/repertoire';
+import DevPlaceholder from '../DevPlaceholder.astro';
+
+interface Props {
+  statement: ResolvedStatement;
+  voiceLabels: Record<SourceVoice, string> | null;
+}
+
+const { statement, voiceLabels } = Astro.props;
+const voice = statement.voice === 'editorial' ? null : statement.voice;
+const citations = statement.citations.map((c) => (c.pages ? `${c.cite}, ${c.pages}` : c.cite)).join('; ');
+---
+
+<p data-voice={statement.voice}>
+  {voice && <span class="label">{voiceLabels?.[voice] ?? <DevPlaceholder label={`voice label: ${voice}`} />}</span>}
+  {voice && ' '}
+  {statement.text}
+  {citations && ` (${citations})`}
+</p>
+{
+  statement.links.length > 0 && (
+    <ul>
+      {statement.links.map((link) => (
+        <li>
+          <a href={link.href}>{link.label}</a>
+        </li>
+      ))}
+    </ul>
+  )
+}

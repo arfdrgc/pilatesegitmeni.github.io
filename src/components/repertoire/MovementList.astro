@@ -1,0 +1,25 @@
+---
+// A list of movement cards. The facets are rendered on the server; the small
+// filter and search script (D9) is a later phase, so the list works without it.
+import type { MovementCardProps, PageCopy } from '../../lib/repertoire';
+import MovementCard from './MovementCard.astro';
+
+interface Props {
+  movements: MovementCardProps[];
+  copy: PageCopy;
+}
+
+const { movements, copy } = Astro.props;
+---
+
+{
+  movements.length > 0 && (
+    <ul data-movement-list>
+      {movements.map((card) => (
+        <li>
+          <MovementCard card={card} copy={copy} />
+        </li>
+      ))}
+    </ul>
+  )
+}

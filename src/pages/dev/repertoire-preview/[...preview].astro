@@ -1,0 +1,15 @@
+---
+// DEVELOPMENT ONLY: the Repertuar template preview with fictional fixtures
+// (src/dev/RepertoirePreview.astro). A production build gets no paths, so it
+// emits no page, and the preview and its fixtures are imported only under
+// `astro dev`, so nothing of them is bundled either.
+export function getStaticPaths() {
+  if (!import.meta.env.DEV) return [];
+  const views = ['movement', 'group', 'sub-apparatus', 'guide-athletes', 'guide-protected', 'guide-children'] as const;
+  return [{ params: { preview: undefined }, props: {} }, ...views.map((view) => ({ params: { preview: view }, props: { view } }))];
+}
+
+const Preview = import.meta.env.DEV ? (await import('../../../dev/RepertoirePreview.astro')).default : null;
+---
+
+{Preview && <Preview {...Astro.props} />}

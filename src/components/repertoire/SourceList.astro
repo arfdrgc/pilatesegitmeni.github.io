@@ -1,0 +1,39 @@
+---
+// The sources cited on a page, led by the voice key V1 (R5). Each source names
+// its teaching tradition where it has one (D14).
+import type { PageCopy, ResolvedSource } from '../../lib/repertoire';
+import DevPlaceholder from '../DevPlaceholder.astro';
+
+interface Props {
+  sources: ResolvedSource[];
+  copy: PageCopy;
+}
+
+const { sources, copy } = Astro.props;
+---
+
+<section>
+  <h2>{copy.ui?.sources ?? <DevPlaceholder label="uiLabels.sources" />}</h2>
+  <p>{copy.v1 ?? <DevPlaceholder label="V1 (voice key)" />}</p>
+  {
+    sources.length > 0 && (
+      <ol>
+        {sources.map((source) => (
+          <li data-kind={source.kind}>
+            {source.authors.length > 0 && `${source.authors.join(', ')}. `}
+            <cite>{source.url ? <a href={source.url}>{source.title}</a> : source.title}</cite>
+            {source.edition && `. ${source.edition}`}
+            {source.publisher && `. ${source.publisher}`}
+            {`, ${source.year}.`}
+            {source.tradition && (
+              <>
+                {' '}
+                {copy.voiceLabels?.tradition ?? <DevPlaceholder label="voice label: tradition" />}: {source.tradition}.
+              </>
+            )}
+          </li>
+        ))}
+      </ol>
+    )
+  }
+</section>

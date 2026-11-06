@@ -1,0 +1,95 @@
+---
+// A movement page (D2, Q3): the classical English name as its title, the
+// facets with LV1 beside the level, its visual (R7), the four required text
+// fields and the optional variations and differences between sources (R4),
+// the precaution block P1, and its sources. Its URL is always at group level.
+import { Image } from 'astro:assets';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import type { MovementPageProps } from '../../lib/repertoire';
+import DevPlaceholder from '../DevPlaceholder.astro';
+import SourceList from './SourceList.astro';
+import Statement from './Statement.astro';
+
+type Props = MovementPageProps;
+
+const page = Astro.props;
+const { copy } = page;
+const ui = copy.ui;
+const fields = [
+  { label: ui?.summary, key: 'summary', statements: page.summary },
+  { label: ui?.setup, key: 'setup', statements: page.setup },
+  { label: ui?.execution, key: 'execution', statements: page.execution },
+  { label: ui?.breathing, key: 'breathing', statements: page.breathing },
+];
+---
+
+<BaseLayout title={`${page.name} | Pilates Eğitmeni`} description={page.summary[0]?.text} translations={page.translations} lockup>
+  <article class="container">
+    <slot name="notice" />
+    <nav aria-label={ui?.breadcrumb}>
+      <ol class="ui">
+        <li><a href={page.breadcrumb.landing.href}>{page.breadcrumb.landing.label}</a></li>
+        {page.breadcrumb.trail.map((step) => <li>{step.href ? <a href={step.href}>{step.label}</a> : step.label}</li>)}
+      </ol>
+    </nav>
+    <h1 class="display">{page.name}</h1>
+    <dl class="ui">
+      <dt>{ui?.level ?? <DevPlaceholder label="uiLabels.level" />}</dt>
+      <dd>{page.facets.level.label}</dd>
+      <dt>{ui?.focus ?? <DevPlaceholder label="uiLabels.focus" />}</dt>
+      <dd>{page.facets.focus.map((f) => f.label).join(', ')}</dd>
+      <dt>{ui?.startingPosition ?? <DevPlaceholder label="uiLabels.startingPosition" />}</dt>
+      <dd>{page.facets.startingPosition.label}</dd>
+    </dl>
+    <p>{copy.lv1 ?? <DevPlaceholder label="LV1 (level note)" />}</p>
+    {
+      page.media.map((media) => (
+        <figure data-kind={media.kind}>
+          <Image src={media.src} alt={media.alt} widths={[640, 1280]} sizes="(min-width: 60rem) 40rem, 100vw" />
+          <figcaption class="ui">
+            {media.credit} · {media.license}
+          </figcaption>
+        </figure>
+      ))
+    }
+    {
+      fields.map((field) => (
+        <section data-field={field.key}>
+          <h2>{field.label ?? <DevPlaceholder label={`uiLabels.${field.key}`} />}</h2>
+          {field.statements.map((statement) => (
+            <Statement statement={statement} voiceLabels={copy.voiceLabels} />
+          ))}
+        </section>
+      ))
+    }
+    {
+      page.variations.length > 0 && (
+        <section data-field="variations">
+          <h2>{ui?.variations ?? <DevPlaceholder label="uiLabels.variations" />}</h2>
+          {page.variations.map((variation) => (
+            <>
+              <h3>{variation.name}</h3>
+              {variation.statements.map((statement) => (
+                <Statement statement={statement} voiceLabels={copy.voiceLabels} />
+              ))}
+            </>
+          ))}
+        </section>
+      )
+    }
+    {
+      page.differences.length > 0 && (
+        <section data-field="differences">
+          <h2>{ui?.differences ?? <DevPlaceholder label="uiLabels.differences" />}</h2>
+          {page.differences.map((statement) => (
+            <Statement statement={statement} voiceLabels={copy.voiceLabels} />
+          ))}
+        </section>
+      )
+    }
+    <aside data-precaution>
+      <p>{copy.p1 ?? <DevPlaceholder label="P1 (precaution, gated)" />}</p>
+    </aside>
+    <SourceList sources={page.sources} copy={copy} />
+  </article>
+</BaseLayout>

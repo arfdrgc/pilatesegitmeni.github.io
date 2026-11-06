@@ -1,0 +1,14 @@
+---
+// Repertuar group pages (en). src/lib/repertoire.ts decides which are
+// built: none until a group's text and diagram are approved and sourced (R10).
+import GroupPage from '../../../../components/repertoire/GroupPage.astro';
+import { getRepertoire, type GroupPageProps } from '../../../../lib/repertoire';
+
+export async function getStaticPaths() {
+  return (await getRepertoire()).groupPages.en;
+}
+
+type Props = GroupPageProps;
+---
+
+<GroupPage {...Astro.props} />

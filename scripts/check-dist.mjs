@@ -3,12 +3,15 @@
 // draft articles, sample fixtures or their images, placeholder or localhost
 // links, unapproved Instagram links, or canonical/hreflang/sitemap URLs that
 // don't point to a built page.
+//
+// Usage: node scripts/check-dist.mjs [dist-directory]  (default: dist/). The
+// argument lets scripts/test-repertoire-exclusion.mjs check planted copies.
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import { basename, extname, join, relative, sep } from 'node:path';
+import { basename, extname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
-const dist = join(root, 'dist');
+const dist = process.argv[2] ? resolve(process.argv[2]) : join(root, 'dist');
 const { default: astroConfig } = await import('../astro.config.mjs');
 const SITE = new URL(astroConfig.site).origin;
 const brand = JSON.parse(readFileSync(join(root, 'src/config/brand.json'), 'utf8'));
@@ -283,12 +286,71 @@ for (const file of textFiles) {
   if (extname(file) === '.html' && /class="[^"]*\britual__skip\b/.test(text)) fail(rel(file), 'contains a ritual skip button');
 }
 
+// 11. Repertuar (src/lib/repertoire.ts). Drafts in src/content/repertoire/_drafts/
+// are loaded only by `astro dev`: none of their ids, names or images may reach
+// the output. The dev fixtures' marker must not appear in any file. Every built
+// Repertuar page below the landing pages exists in both languages (D12), so it
+// carries hreflang alternates.
+const repertoireRoot = join(root, 'src/content/repertoire');
+const repertoirePublished = sourceFiles(join(repertoireRoot, 'published'));
+const repertoireDrafts = sourceFiles(join(repertoireRoot, '_drafts'));
+const stemOf = (file) => basename(file).replace(/\.[^.]+$/, '');
+const isYaml = (file) => /\.ya?ml$/i.test(file);
+const publishedStems = new Set(repertoirePublished.filter(isYaml).map(stemOf));
+const draftChecks = [];
+for (const file of repertoireDrafts) {
+  const name = relative(root, file);
+  if (/\.(?:png|jpe?g|webp|avif|gif|svg|tiff?)$/i.test(file)) {
+    draftChecks.push({ name, stem: stemOf(file), image: true });
+    continue;
+  }
+  if (!isYaml(file)) continue;
+  const kind = relative(join(repertoireRoot, '_drafts'), file).split(sep)[0];
+  const stem = stemOf(file);
+  // Only movement ids are URL segments of their own; a group or guide text is named after its group or guide.
+  const id = (kind === 'movements' || kind === 'movement-text') && !publishedStems.has(stem) ? stem : null;
+  // Any `name:` or `title:` value, nested ones included (block or flow style).
+  const names = [...readFileSync(file, 'utf8').matchAll(/^\s*(?:- )?["']?(?:name|title)["']?\s*:\s*(.*?)\s*,?\s*$/gm)]
+    .map((m) => m[1].replace(/^(['"])(.*)\1$/, '$2'))
+    .filter((value) => value.length >= 4 && !/^[>|]/.test(value));
+  draftChecks.push({ name, id, names });
+}
+for (const draft of draftChecks) {
+  for (const file of files) {
+    if (draft.image && basename(file).startsWith(`${draft.stem}.`)) fail(rel(file), `built from Repertuar draft image ${draft.name}`);
+    if (draft.id && rel(file).split('/').includes(draft.id)) fail(rel(file), `built from Repertuar draft ${draft.name}`);
+  }
+  for (const file of textFiles) {
+    const text = readFileSync(file, 'utf8');
+    if (draft.image && text.includes(`/${draft.stem}.`)) fail(rel(file), `references Repertuar draft image ${draft.name}`);
+    if (draft.id && text.includes(`/${draft.id}/`)) fail(rel(file), `links to Repertuar draft ${draft.name}`);
+    for (const value of draft.names ?? []) {
+      if (decodeEntities(text).includes(value)) fail(rel(file), `contains "${value}" from Repertuar draft ${draft.name}`);
+    }
+  }
+}
+const FIXTURE_MARKERS = ['KURGUSAL ÖNİZLEME', 'FICTIONAL PREVIEW'];
+for (const file of textFiles) {
+  const text = decodeEntities(readFileSync(file, 'utf8'));
+  for (const marker of FIXTURE_MARKERS) {
+    if (text.includes(marker)) fail(rel(file), `contains the dev fixtures' marker "${marker}" (src/dev/repertoire-fixtures.ts)`);
+  }
+}
+let repertoirePages = 0;
+for (const file of htmlFiles) {
+  const path = pagePath(file);
+  if (!/^\/(?:repertuar|en\/repertoire)\/[^/]+\//.test(path)) continue;
+  repertoirePages++;
+  if (!alternatesByPage.has(path)) fail(rel(file), 'is a Repertuar page without its other language (hreflang alternates missing)');
+}
+
 // Report.
 console.log(`check-dist: scanned ${files.length} files (${htmlFiles.length} HTML pages) in dist/`);
 console.log(`  pages: ${htmlFiles.map(pagePath).join(', ')}`);
 console.log(`  Instagram: ${approvedInstagramUrl ? `only ${approvedInstagramUrl} allowed` : 'no handle configured, no Instagram links allowed'}`);
 console.log(`  draft/sample articles checked for exclusion: ${excluded.length}`);
 console.log(`  sample images checked for exclusion: ${sampleImages.length}`);
+console.log(`  Repertuar: ${repertoirePages} page(s) below the landing pages; ${draftChecks.length} draft file(s) checked for exclusion`);
 for (const warning of warnings) console.warn(`  ! ${warning}`);
 if (failures.length) {
   console.error(`\ncheck-dist: ${failures.length} problem(s)`);

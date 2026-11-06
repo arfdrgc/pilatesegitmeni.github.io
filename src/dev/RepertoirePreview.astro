@@ -1,0 +1,78 @@
+---
+// DEVELOPMENT ONLY: the Repertuar templates with the fictional fixtures of
+// src/dev/repertoire-fixtures.ts (T-10, Q9), at /dev/repertoire-preview/ and
+// /en/dev/repertoire-preview/. It shows where every copy field goes: fields
+// that aren't approved yet (all of them in T1) show as DevPlaceholder. Not
+// a diagram preview. Rendered by the routes in src/pages/dev/repertoire-preview/
+// and src/pages/en/dev/repertoire-preview/ under `astro dev` only.
+import GroupPage from '../components/repertoire/GroupPage.astro';
+import GuidePage from '../components/repertoire/GuidePage.astro';
+import MovementPage from '../components/repertoire/MovementPage.astro';
+import DevPlaceholder from '../components/DevPlaceholder.astro';
+import { repertoireCopy } from '../config/repertoire';
+import { getLang, type Translations } from '../i18n/utils';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { previewCopy } from '../lib/repertoire';
+import { fixtureProps, fixtureViews, type FixtureView } from './repertoire-fixtures';
+
+interface Props {
+  view?: FixtureView;
+}
+
+const { view } = Astro.props;
+const lang = getLang(Astro.currentLocale);
+const pathOf = (l: 'tr' | 'en', v?: FixtureView) => `${l === 'tr' ? '' : '/en'}/dev/repertoire-preview/${v ? `${v}/` : ''}`;
+const translations: Translations = { tr: pathOf('tr', view), en: pathOf('en', view) };
+const copy = previewCopy(lang);
+const fixture = view ? fixtureProps(view, lang, copy, translations) : null;
+const marker = lang === 'tr' ? 'KURGUSAL ÖNİZLEME' : 'FICTIONAL PREVIEW';
+const landing = Object.entries(repertoireCopy.landing) as [string, (typeof repertoireCopy.landing)['l1']][];
+---
+
+{
+  fixture?.kind === 'movement' && (
+    <MovementPage {...fixture.props}>
+      <p slot="notice" data-dev-only class="label">{marker}: {view}</p>
+    </MovementPage>
+  )
+}
+{
+  fixture?.kind === 'group' && (
+    <GroupPage {...fixture.props}>
+      <p slot="notice" data-dev-only class="label">{marker}: {view}</p>
+    </GroupPage>
+  )
+}
+{
+  fixture?.kind === 'guide' && (
+    <GuidePage {...fixture.props}>
+      <p slot="notice" data-dev-only class="label">{marker}: {view}</p>
+    </GuidePage>
+  )
+}
+{
+  !fixture && (
+    <BaseLayout title={`Repertuar (dev preview) | Pilates Eğitmeni`} translations={translations} lockup>
+      <div class="container" data-dev-only>
+        <p class="label">{marker}</p>
+        <h1 class="display">Repertuar templates</h1>
+        <ul>
+          {fixtureViews.map((v) => (
+            <li>
+              <a href={pathOf(lang, v)}>{v}</a>
+            </li>
+          ))}
+        </ul>
+        <h2>Landing copy fields (the landing pages are unchanged in T1)</h2>
+        <dl>
+          {landing.map(([key, value]) => (
+            <>
+              <dt>{key.toUpperCase()}</dt>
+              <dd>{value ? value.text[lang] : <DevPlaceholder label={`${key.toUpperCase()} (landing, not approved)`} />}</dd>
+            </>
+          ))}
+        </dl>
+      </div>
+    </BaseLayout>
+  )
+}

@@ -1,0 +1,14 @@
+---
+// Repertuar context guides (en). The segment is a path only: there is no
+// guide index page.
+import GuidePage from '../../../../components/repertoire/GuidePage.astro';
+import { getRepertoire, type GuidePageProps } from '../../../../lib/repertoire';
+
+export async function getStaticPaths() {
+  return (await getRepertoire()).guidePages.en;
+}
+
+type Props = GuidePageProps;
+---
+
+<GuidePage {...Astro.props} />
